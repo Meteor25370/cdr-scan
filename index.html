@@ -1,0 +1,3120 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDR/EDR Analyzer — SmartMS StreamWIDE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+/* ======= RESET ======= */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ======= DESIGN TOKENS — dark (défaut) ======= */
+:root{
+  --bg:        #0d1117;
+  --bg-2:      #161c2b;
+  --bg-card:   #1a2235;
+  --bg-hover:  #1f2840;
+  --border:    rgba(148,163,184,.09);
+  --border-hi: rgba(148,163,184,.20);
+  --text-1:    #e2e8f4;
+  --text-2:    #8494ab;
+  --text-3:    #4d5a6e;
+  --accent:    #38bdf8;
+  --accent-dk: #0284c7;
+  --accent-bg: rgba(56,189,248,.10);
+  --accent-2:  #34d399;
+  --surface:   linear-gradient(180deg,rgba(255,255,255,.070),rgba(255,255,255,.024) 44%,rgba(5,10,20,.10));
+  --surface-raised: linear-gradient(180deg,rgba(255,255,255,.095),rgba(255,255,255,.030) 48%,rgba(2,6,23,.14));
+  --surface-sunken: linear-gradient(180deg,rgba(2,6,23,.42),rgba(15,23,42,.28));
+  --edge-lit:  rgba(255,255,255,.105);
+  --edge-low:  rgba(2,6,23,.72);
+  --glow:      rgba(56,189,248,.18);
+  --success:   #34d399;
+  --s-bg:      rgba(52,211,153,.13);
+  --warn:      #fbbf24;
+  --w-bg:      rgba(251,191,36,.13);
+  --danger:    #f87171;
+  --d-bg:      rgba(248,113,113,.13);
+  --r:         14px;
+  --r-sm:      9px;
+  --r-xs:      5px;
+  --sh-sm: 0 1px 0 var(--edge-lit) inset,0 -1px 0 var(--edge-low) inset,0 10px 22px rgba(0,0,0,.44),0 0 24px rgba(56,189,248,.055);
+  --sh:    0 1px 0 var(--edge-lit) inset,0 -1px 0 var(--edge-low) inset,0 18px 44px rgba(0,0,0,.54),0 8px 18px rgba(2,6,23,.46),0 0 34px rgba(56,189,248,.075);
+  --sh-lg: 0 1px 0 rgba(255,255,255,.13) inset,0 -1px 0 rgba(2,6,23,.85) inset,0 34px 92px rgba(0,0,0,.72),0 14px 36px rgba(2,6,23,.64),0 0 58px rgba(56,189,248,.10);
+  --ease:  cubic-bezier(.4,0,.2,1);
+  --t:     .2s var(--ease);
+  --font:  'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:  'JetBrains Mono','Cascadia Code',monospace;
+}
+
+/* ======= DESIGN TOKENS — light ======= */
+[data-theme="light"]{
+  --bg:        #f1f5f9;
+  --bg-2:      #ffffff;
+  --bg-card:   #ffffff;
+  --bg-hover:  #f8fafc;
+  --border:    rgba(15,23,42,.09);
+  --border-hi: rgba(15,23,42,.20);
+  --text-1:    #0f172a;
+  --text-2:    #475569;
+  --text-3:    #94a3b8;
+  --accent:    #0284c7;
+  --accent-dk: #0369a1;
+  --accent-bg: rgba(2,132,199,.09);
+  --accent-2:  #059669;
+  --surface:   linear-gradient(180deg,rgba(255,255,255,.96),rgba(248,250,252,.98));
+  --surface-raised: linear-gradient(180deg,#fff,#f8fafc);
+  --surface-sunken: linear-gradient(180deg,#e2e8f0,#f8fafc);
+  --edge-lit:  rgba(255,255,255,.95);
+  --edge-low:  rgba(15,23,42,.08);
+  --glow:      rgba(2,132,199,.11);
+  --success:   #059669;
+  --s-bg:      rgba(5,150,105,.11);
+  --warn:      #d97706;
+  --w-bg:      rgba(217,119,6,.11);
+  --danger:    #dc2626;
+  --d-bg:      rgba(220,38,38,.11);
+  --sh-sm: 0 1px 4px rgba(15,23,42,.08),0 0 0 1px rgba(15,23,42,.04);
+  --sh:    0 4px 20px rgba(15,23,42,.11);
+  --sh-lg: 0 12px 48px rgba(15,23,42,.18);
+}
+
+/* ======= BASE ======= */
+html{font-size:15px;scroll-behavior:smooth}
+body{
+  font-family:var(--font);background:radial-gradient(circle at 18% -12%,rgba(56,189,248,.09),transparent 34%),radial-gradient(circle at 86% 0%,rgba(52,211,153,.07),transparent 28%),linear-gradient(180deg,#0b1018 0%,var(--bg) 38%,#090d14 100%);color:var(--text-1);
+  min-height:100vh;overflow-x:hidden;line-height:1.65;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  transition:background .35s,color .2s;
+}
+[data-theme="light"] body{background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 42%,#e2e8f0 100%)}
+
+/* ======= SCROLLBAR ======= */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-3)}
+
+/* ======= HEADER ======= */
+.header{
+  position:sticky;top:0;z-index:100;height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;gap:16px;
+  background:linear-gradient(180deg,rgba(22,28,43,.94),rgba(15,23,42,.91));border-bottom:1px solid var(--border);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 14px 34px rgba(0,0,0,.34);
+  backdrop-filter:blur(16px) saturate(1.08);
+  transition:background .35s,border-color .2s,box-shadow .2s;
+}
+[data-theme="light"] .header{background:rgba(255,255,255,.86);box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 10px 26px rgba(15,23,42,.09)}
+.header-brand{display:flex;align-items:center;gap:11px}
+.header-logo{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;font-size:1rem;
+  box-shadow:0 1px 0 rgba(255,255,255,.42) inset,0 -8px 16px rgba(2,6,23,.24) inset,0 0 22px rgba(56,189,248,.25),0 10px 22px rgba(0,0,0,.32);
+}
+.header-info{display:flex;flex-direction:column;line-height:1.2}
+.header-title{font-size:.96rem;font-weight:700;color:var(--text-1)}
+.header-sub{font-size:.67rem;color:var(--text-3);font-weight:400;margin-top:1px}
+.header-actions{display:flex;align-items:center;gap:7px}
+
+/* ======= BUTTONS ======= */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 13px;border-radius:var(--r-sm);
+  font-family:var(--font);font-size:.81rem;font-weight:500;
+  border:1px solid var(--border);background:var(--surface);color:var(--text-1);
+  cursor:pointer;transition:var(--t);white-space:nowrap;box-shadow:var(--sh-sm);
+}
+.btn:hover{background:var(--surface-raised);border-color:var(--border-hi);box-shadow:var(--sh)}
+.btn-primary{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
+.btn-primary:hover{background:var(--accent-dk);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 12px 26px rgba(56,189,248,.32);transform:translateY(-1px)}
+.btn-danger{color:var(--danger);border-color:var(--d-bg)}
+.btn-danger:hover{background:var(--d-bg)}
+.btn-icon{padding:0;width:34px;height:34px;justify-content:center;border-radius:50%;font-size:1rem}
+.btn-sm{padding:5px 11px;font-size:.78rem}
+.btn-theme-icon{font-size:1rem;line-height:1}
+
+/* ======= UPLOAD ======= */
+.upload-overlay{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(10px);
+}
+[data-theme="light"] .upload-overlay{background:rgba(241,245,249,.75)}
+.upload-zone{
+  position:relative;
+  max-width:500px;width:92%;padding:52px 44px;border-radius:var(--r);
+  border:2px dashed var(--border-hi);background:var(--surface-raised);
+  text-align:center;cursor:pointer;transition:var(--t);
+  box-shadow:var(--sh-lg);
+}
+.upload-zone:hover,.upload-zone.drag-over{
+  border-color:var(--accent);background:var(--accent-bg);
+  box-shadow:0 0 0 1px rgba(56,189,248,.20) inset,0 0 54px var(--glow),var(--sh-lg);
+}
+.upload-icon{font-size:3rem;margin-bottom:16px;display:block}
+.upload-theme-toggle{
+  position:absolute;top:14px;right:14px;
+  width:36px;height:36px;border-radius:50%;
+}
+.upload-zone h2{font-size:1.25rem;font-weight:700;margin-bottom:10px}
+.upload-zone p{color:var(--text-2);font-size:.88rem;line-height:1.6}
+.upload-supported{color:var(--text-3);font-size:.75rem;margin-top:14px}
+.upload-zone input[type=file]{display:none}
+
+/* ======= LAYOUT ======= */
+.container{max-width:1440px;margin:0 auto;padding:22px 24px}
+
+/* ======= STAT CARDS ======= */
+.stats-bar{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;margin-bottom:20px;
+}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;box-shadow:var(--sh-sm);transition:var(--t);
+  display:flex;flex-direction:column;
+}
+.stat-card:hover{box-shadow:var(--sh),0 0 0 1px rgba(56,189,248,.08) inset;transform:translateY(-2px);border-color:var(--border-hi)}
+.stat-label{font-size:.69rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.stat-value{font-size:1.85rem;font-weight:800;line-height:1.1;letter-spacing:-.03em}
+.stat-sub{font-size:.73rem;color:var(--text-3);margin-top:5px}
+
+/* ======= TABS ======= */
+.tabs{
+  display:flex;gap:3px;margin-bottom:20px;
+  background:var(--surface-sunken);border:1px solid var(--border);border-radius:12px;
+  padding:4px;width:fit-content;max-width:100%;flex-wrap:wrap;
+  box-shadow:0 1px 0 rgba(255,255,255,.05),0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px rgba(0,0,0,.24) inset;
+}
+.tab{
+  padding:7px 18px;border-radius:9px;
+  font-size:.86rem;font-weight:500;color:var(--text-2);
+  cursor:pointer;transition:var(--t);
+  border:none;background:transparent;font-family:var(--font);white-space:nowrap;
+}
+.tab:hover{color:var(--text-1);background:var(--bg-hover)}
+.tab.active{color:#fff;background:linear-gradient(180deg,var(--accent),var(--accent-dk));font-weight:600;box-shadow:0 1px 0 rgba(255,255,255,.34) inset,0 7px 18px rgba(56,189,248,.28)}
+.tab-count{
+  font-size:.68rem;padding:1px 6px;border-radius:99px;margin-left:5px;
+  background:rgba(255,255,255,.22);color:rgba(255,255,255,.85);
+}
+.tab:not(.active) .tab-count{background:var(--bg-hover);color:var(--text-3)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ======= CHARTS ======= */
+.charts-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
+  gap:14px;margin-bottom:20px;
+}
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 18px 14px;box-shadow:var(--sh-sm);transition:var(--t);
+}
+.chart-card:hover{box-shadow:var(--sh);border-color:var(--border-hi);transform:translateY(-1px)}
+.chart-title{
+  font-size:.7rem;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.09em;margin-bottom:12px;
+  display:flex;align-items:center;gap:7px;
+}
+.chart-title::before{
+  content:'';display:block;width:3px;height:13px;
+  background:var(--accent);border-radius:2px;flex-shrink:0;
+}
+.chart-wrap{width:100%;height:265px}
+.chart-card.full-width{grid-column:1/-1}
+.chart-card.full-width .chart-wrap{height:305px}
+.detail-card{margin-bottom:14px;padding:14px 16px}
+.detail-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));
+  gap:7px 16px;align-items:start;font-size:.82rem;line-height:1.35;
+}
+.detail-grid-call{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+.detail-grid-kpi{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.detail-grid-qos{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.detail-item{
+  min-width:0;display:flex;align-items:baseline;gap:5px;
+  white-space:nowrap;overflow:hidden;
+}
+.detail-label{
+  color:var(--text-3);font-size:.68rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.05em;flex:0 0 auto;
+}
+.detail-value{
+  min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--text-1);
+}
+.detail-value strong{font-weight:800}
+.detail-sub{
+  color:var(--text-3);font-size:.7rem;margin-left:3px;
+}
+.detail-item-wide{grid-column:1/-1}
+.detail-item-wide .detail-value{white-space:normal;overflow:visible;text-overflow:clip}
+.modal-session-summary{
+  grid-template-columns:repeat(auto-fit,minmax(135px,1fr));
+  gap:10px;margin-bottom:14px;
+}
+.modal-session-summary .stat-card{padding:13px 15px}
+.modal-session-summary .stat-label{margin-bottom:4px}
+
+/* ======= TABLES ======= */
+.table-wrap{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--sh);
+}
+.table-toolbar{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));
+}
+.table-toolbar input[type=text],.table-toolbar select{
+  background:var(--surface-sunken);border:1px solid var(--border);border-radius:var(--r-sm);
+  color:var(--text-1);padding:7px 12px;
+  font-family:var(--font);font-size:.84rem;transition:var(--t);box-shadow:0 1px 0 rgba(255,255,255,.04),0 8px 16px rgba(0,0,0,.16) inset;
+}
+.table-toolbar input[type=text]:focus,.table-toolbar select:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg);
+}
+.table-toolbar input[type=text]{flex:1;min-width:200px}
+.toolbar-info{color:var(--text-3);font-size:.77rem;margin-left:auto}
+.table-pager{display:inline-flex;align-items:center;gap:6px;margin-left:10px}
+.pager-btn{
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--text-1);cursor:pointer;transition:var(--t);
+  box-shadow:var(--sh-sm);
+}
+.pager-btn:hover:not(:disabled){border-color:var(--border-hi);box-shadow:var(--sh);transform:translateY(-1px)}
+.pager-btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
+.pager-page{color:var(--text-2);font-weight:600}
+.table-scroll{overflow-x:auto;max-height:56vh;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+thead{position:sticky;top:0;z-index:2}
+thead th{
+  background:linear-gradient(180deg,var(--bg-2),var(--bg));color:var(--text-3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;
+  font-size:.68rem;padding:10px 14px;text-align:left;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+thead th:hover{color:var(--accent)}
+thead th.sorted{color:var(--accent)}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text-1)}
+tbody tr{transition:background .12s}
+tbody tr:nth-child(even){background:rgba(148,163,184,.035)}
+tbody tr:hover{background:var(--accent-bg)!important}
+tbody tr.clickable{cursor:pointer}
+
+/* ======= BADGES ======= */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:99px;
+  font-size:.71rem;font-weight:700;letter-spacing:.03em;
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 8px 18px rgba(0,0,0,.12);
+}
+.badge-ok{background:var(--s-bg);color:var(--success)}
+.badge-nok{background:var(--d-bg);color:var(--danger)}
+.badge-info{background:var(--accent-bg);color:var(--accent)}
+.badge-warn{background:var(--w-bg);color:var(--warn)}
+
+/* ======= MODAL ======= */
+.modal-overlay{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.62);backdrop-filter:blur(8px);
+}
+.modal{
+  background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r);
+  max-width:920px;width:95%;max-height:87vh;
+  display:flex;flex-direction:column;box-shadow:var(--sh-lg);
+}
+.modal-raw{max-width:none;width:calc(100vw - 16px);max-height:94vh}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 24px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.01));
+}
+.modal-header h3{font-size:1.05rem;font-weight:700}
+.modal-body{flex:1;overflow-y:auto;padding:20px}
+.modal-close{
+  width:30px;height:30px;border-radius:50%;
+  border:1px solid var(--border);background:transparent;
+  color:var(--text-2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:var(--t);
+}
+.modal-close:hover{background:var(--d-bg);color:var(--danger);border-color:var(--danger)}
+
+/* ======= TIMELINE ======= */
+.timeline{position:relative;padding-left:26px}
+.timeline::before{
+  content:'';position:absolute;left:7px;top:4px;bottom:0;
+  width:2px;background:linear-gradient(to bottom,var(--accent),transparent);border-radius:2px;
+}
+.timeline-item{position:relative;margin-bottom:18px}
+.timeline-item::before{
+  content:'';position:absolute;left:-23px;top:5px;
+  width:10px;height:10px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg-2);
+  box-shadow:0 0 0 3px var(--accent-bg);
+}
+.tl-time{font-size:.71rem;color:var(--text-3);margin-bottom:2px;font-family:var(--mono)}
+.tl-event{font-size:.9rem;font-weight:600;margin-bottom:2px}
+.tl-detail{font-size:.78rem;color:var(--text-2);line-height:1.5}
+.tl-detail-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));
+  gap:3px 12px;line-height:1.35;
+}
+.tl-detail-grid .detail-item{font-size:.74rem;font-family:var(--mono)}
+.tl-detail-grid .detail-label{font-size:.61rem}
+
+/* ======= PROGRESS ======= */
+.progress-overlay{
+  position:fixed;inset:0;z-index:250;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.62);backdrop-filter:blur(10px);
+}
+.progress-card{
+  background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r);
+  padding:36px 44px;max-width:500px;width:92%;text-align:center;box-shadow:var(--sh-lg);
+}
+.progress-card h3{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.progress-step{font-size:.84rem;color:var(--text-2);margin-bottom:22px;min-height:1.5em}
+.progress-track{height:5px;background:var(--surface-sunken);border-radius:99px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.04),0 8px 16px rgba(0,0,0,.20) inset}
+.progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .3s ease;width:0%;box-shadow:0 0 18px var(--glow)}
+.progress-stats{font-size:.75rem;color:var(--text-3)}
+.progress-spinner{
+  display:inline-block;width:16px;height:16px;
+  border:2px solid var(--border-hi);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .75s linear infinite;
+  margin-right:7px;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ======= EMPTY ======= */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-3)}
+.empty-icon{font-size:2.5rem;margin-bottom:14px;display:block;opacity:.55}
+
+/* ======= TOAST ======= */
+.toast{
+  position:fixed;bottom:22px;right:22px;z-index:400;
+  background:var(--surface-raised);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:var(--r-sm);padding:13px 18px;
+  font-size:.84rem;max-width:380px;color:var(--text-1);
+  box-shadow:var(--sh);animation:toastIn .25s var(--ease);
+}
+.toast-error{border-left-color:var(--danger)}
+@keyframes toastIn{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+
+/* ======= SESSION EXPAND ======= */
+.expand-chevron{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:18px;height:18px;border-radius:4px;
+  font-size:.6rem;color:var(--text-3);
+  transition:transform .18s var(--ease),color .18s,background .18s;
+  background:var(--surface-sunken);box-shadow:0 1px 0 rgba(255,255,255,.05) inset;
+}
+tr.sess-expanded .expand-chevron{transform:rotate(90deg);color:var(--accent);background:var(--accent-bg)}
+.expand-row>td{
+  padding:0!important;border-bottom:2px solid var(--border-hi)!important;
+  border-top:none!important;background:var(--bg)!important;
+}
+.expand-inner{padding:12px 16px 18px 16px;border-top:1px solid var(--border)}
+.expand-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.expand-title{font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
+.expand-table{width:100%;font-size:.78rem;border-collapse:collapse}
+.expand-table th{
+  background:linear-gradient(180deg,var(--bg-2),var(--bg));color:var(--text-3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;
+  font-size:.66rem;padding:7px 12px;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.expand-table td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.expand-table tr:last-child td{border-bottom:none}
+.expand-table tr:hover td{background:var(--accent-bg)}
+.expand-params{
+  font-family:var(--mono);font-size:.71rem;color:var(--text-2);
+  max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.event-count-pill{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:24px;height:20px;padding:0 6px;margin-left:6px;border-radius:99px;
+  background:var(--surface-sunken);border:1px solid var(--border);
+  color:var(--text-2);font-size:.68rem;font-weight:800;
+}
+.raw-code{
+  font-family:var(--mono);font-size:.72rem;line-height:1.55;
+  white-space:pre-wrap;word-break:break-all;
+  padding:12px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface-sunken);color:var(--text-2);
+}
+.raw-summary{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));
+  gap:7px 16px;margin-bottom:12px;font-size:.8rem;
+}
+.raw-summary .detail-item{font-family:var(--mono)}
+.raw-table{width:100%;border-collapse:collapse;font-size:.78rem;margin:10px 0 16px}
+.raw-table th,.raw-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.raw-table th{background:linear-gradient(180deg,var(--bg-2),var(--bg));color:var(--text-3);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;text-align:left}
+.raw-table td:nth-child(1){width:58px;color:var(--text-3);font-family:var(--mono)}
+.raw-table td:nth-child(2){width:240px;color:var(--accent);font-family:var(--mono);font-size:.72rem}
+.raw-table td:nth-child(3){font-family:var(--mono);word-break:break-all}
+.raw-field-section{
+  margin-top:10px;padding:10px;border:1px solid var(--border);
+  border-radius:var(--r-sm);background:rgba(255,255,255,.025);
+}
+.raw-field-section h4{
+  margin:0 0 8px;font-size:.74rem;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.07em;
+  display:flex;align-items:center;gap:7px;
+}
+.raw-field-section h4::before{
+  content:'';display:block;width:3px;height:12px;background:var(--accent);
+  border-radius:2px;flex-shrink:0;
+}
+.raw-field-count{
+  margin-left:auto;color:var(--text-3);font-family:var(--mono);
+  font-size:.63rem;font-weight:600;letter-spacing:0;text-transform:none;
+}
+.raw-field-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));
+  gap:6px 10px;
+}
+.raw-metric-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.raw-metric-row{
+  min-width:0;display:grid;grid-template-columns:minmax(110px,.65fr) repeat(5,minmax(120px,1fr));
+  gap:14px;align-items:center;font-family:var(--mono);font-size:.84rem;line-height:1.35;
+  padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-xs);
+  background:var(--surface-sunken);
+}
+.raw-metric-row-name{font-weight:800;color:var(--text-1);white-space:nowrap;font-size:.9rem}
+.raw-metric-cell{min-width:0;display:flex;align-items:baseline;gap:4px;white-space:nowrap;overflow:hidden}
+.raw-metric-label{color:var(--text-3);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;flex:0 0 auto}
+.raw-metric-value{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--text-2);font-weight:700}
+.raw-field{
+  min-width:0;display:flex;align-items:baseline;gap:6px;
+  font-family:var(--mono);font-size:.72rem;line-height:1.35;
+  padding:5px 7px;border:1px solid var(--border);border-radius:var(--r-xs);
+  background:var(--surface-sunken);
+}
+.raw-field-key{
+  grid-column:span 2;border-color:var(--border-hi);
+  background:linear-gradient(180deg,rgba(56,189,248,.09),rgba(56,189,248,.025));
+}
+.raw-field-secondary{opacity:.76}
+.raw-field-index{color:var(--text-3);font-size:.65rem;flex:0 0 auto}
+.raw-field-name{color:var(--accent);flex:0 0 auto;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.raw-field-key .raw-field-name{font-weight:800;color:var(--text-1)}
+.raw-field-key .raw-field-value{font-weight:800;color:var(--text-1)}
+.raw-field-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)}
+@media(max-width:900px){.raw-field-key{grid-column:span 1}}
+@media(max-width:1100px){.raw-metric-row{grid-template-columns:1fr 1fr}.raw-metric-row-name{grid-column:1/-1}}
+.raw-fields{
+  margin-top:10px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface);box-shadow:var(--sh-sm);overflow:hidden;
+}
+.raw-fields summary{
+  cursor:pointer;list-style:none;padding:9px 12px;
+  color:var(--accent);font-size:.78rem;font-weight:700;
+}
+.raw-fields summary::-webkit-details-marker{display:none}
+.raw-fields summary::before{content:'▸';display:inline-block;margin-right:7px;transition:transform .18s var(--ease)}
+.raw-fields[open] summary::before{transform:rotate(90deg)}
+.raw-fields-body{padding:0 12px 12px}
+.metric-cell{min-width:68px;line-height:1.12}
+.metric-main{font-weight:800;color:var(--text-1)}
+.metric-sub{display:block;color:var(--text-3);font-size:.58rem;margin-top:0}
+.metric-extra{display:block;color:var(--text-2);font-size:.57rem;margin-top:0}
+.metric-tone-ok{color:var(--success)!important}
+.metric-tone-warn{color:var(--warn)!important}
+.metric-tone-bad{color:var(--danger)!important}
+.metric-tone-muted{color:var(--text-3)!important}
+#kpiTable{table-layout:fixed;font-size:.73rem}
+#kpiTable th,#kpiTable td{padding:6px 5px}
+#kpiTable th{font-size:.56rem;letter-spacing:.035em}
+#kpiTable td{overflow:hidden;text-overflow:ellipsis}
+#kpiTable th:nth-child(1),#kpiTable td:nth-child(1){width:9%}
+#kpiTable th:nth-child(2),#kpiTable td:nth-child(2){width:11%}
+#kpiTable th:nth-child(3),#kpiTable td:nth-child(3){width:9%}
+#kpiTable th:nth-child(4),#kpiTable td:nth-child(4){width:6%}
+#kpiTable th:nth-child(5),#kpiTable td:nth-child(5){width:4.2%}
+#kpiTable th:nth-child(6),#kpiTable td:nth-child(6),
+#kpiTable th:nth-child(7),#kpiTable td:nth-child(7),
+#kpiTable th:nth-child(8),#kpiTable td:nth-child(8),
+#kpiTable th:nth-child(9),#kpiTable td:nth-child(9),
+#kpiTable th:nth-child(10),#kpiTable td:nth-child(10){width:7.2%}
+#kpiTable th:nth-child(11),#kpiTable td:nth-child(11){width:6.2%}
+#kpiTable th:nth-child(12),#kpiTable td:nth-child(12){width:6.5%}
+#kpiTable th:nth-child(13),#kpiTable td:nth-child(13){width:6.6%}
+#kpiTable th:nth-child(14),#kpiTable td:nth-child(14){width:3.7%}
+#kpiTable code{font-size:.66rem!important}
+#kpiTable .badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 6px;font-size:.63rem}
+#kpiTable .btn-sm{padding:3px 7px;font-size:.68rem}
+
+/* ======= RESPONSIVE ======= */
+@media(max-width:768px){
+  .header{padding:0 14px;height:52px}
+  .header-sub{display:none}
+  .container{padding:14px}
+  .stats-bar{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat-value{font-size:1.5rem}
+  .charts-grid{grid-template-columns:1fr}
+  .tab{padding:6px 13px;font-size:.82rem}
+  .upload-zone{padding:38px 24px}
+  .upload-theme-toggle{top:10px;right:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">📡</div>
+    <div class="header-info">
+      <span class="header-title">CDR/EDR Analyzer</span>
+      <span class="header-sub">SmartMS StreamWIDE</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-icon" id="btnTheme" title="Basculer le thème" aria-label="Toggle theme">
+      <span class="btn-theme-icon">☀️</span>
+    </button>
+    <button class="btn btn-sm" id="btnUpload" title="Charger un nouveau fichier">📂 Ouvrir</button>
+    <button class="btn btn-sm" id="btnReset" title="Réinitialiser">↺ Reset</button>
+    <button class="btn btn-sm" id="btnExportCSV" title="Exporter en CSV">↓ CSV</button>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="container" id="mainContent">
+  <!-- UPLOAD ZONE -->
+  <div class="upload-overlay" id="uploadOverlay">
+    <div class="upload-zone" id="uploadZone">
+      <button class="btn btn-icon upload-theme-toggle" id="btnUploadTheme" title="Basculer le thème" aria-label="Basculer le thème">
+        <span class="btn-theme-icon">☀️</span>
+      </button>
+      <span class="upload-icon">📁</span>
+      <h2>Déposez votre fichier ici</h2>
+      <p>Glissez-déposez un fichier <strong>.tgz</strong>, <strong>.edr</strong> ou <strong>.cdr</strong></p>
+      <p class="upload-supported">Format StreamWIDE SmartMS — CDR/EDR pipe-delimited</p>
+      <input type="file" id="fileInput" accept=".tgz,.edr,.cdr,.gz,.tar">
+    </div>
+  </div>
+</main>
+
+<!-- MODAL CONTAINER -->
+<div id="modalContainer"></div>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer"></div>
+
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay" id="progressOverlay" style="display:none">
+  <div class="progress-card">
+    <h3><span class="progress-spinner"></span> Analyse en cours</h3>
+    <div class="progress-step" id="progressStep">Préparation...</div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-stats" id="progressStats"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CDR/EDR ANALYZER — SmartMS StreamWIDE
+// ============================================================
+
+// ============ CONSTANTS ============
+
+const EVENT_TYPES = {
+  // SMS (8.1-8.5)
+  '6251001': { name: 'FirstConnectionSmsDlr', category: 'SMS', icon: '✉️' },
+  '6251002': { name: 'MoResponseSmsDlr', category: 'SMS', icon: '📩' },
+  '6251003': { name: 'DepartmentAssignmentSmsDlr', category: 'SMS', icon: '🏢' },
+  '6251004': { name: 'WebChatActivationCodeSmsDlr', category: 'SMS', icon: '🔐' },
+  '6251005': { name: 'WebChatResetCodeSmsDlr', category: 'SMS', icon: '♻️' },
+  // VoIP (8.6-8.9)
+  '6251006': { name: 'VoipCallStart', category: 'VoIP', icon: '📞' },
+  '6251007': { name: 'VoipCallInvitationRefused', category: 'VoIP', icon: '🚫' },
+  '6251008': { name: 'VoipCallParticipantJoined', category: 'VoIP', icon: '➕' },
+  '6251009': { name: 'VoipCallEnd', category: 'VoIP', icon: '⏹️' },
+  // WalkieTalkie / PTT (8.10-8.15)
+  '6251010': { name: 'WalkieTalkieStart', category: 'PTT', icon: '🎙️' },
+  '6251011': { name: 'WalkieTalkieInvitationRefused', category: 'PTT', icon: '🚫' },
+  '6251012': { name: 'WalkieTalkieParticipantJoined', category: 'PTT', icon: '➕' },
+  '6251013': { name: 'WalkieTalkieParticipantReleasedFloor', category: 'PTT', icon: '🔓' },
+  '6251014': { name: 'WalkieTalkieParticipantLeft', category: 'PTT', icon: '➖' },
+  '6251015': { name: 'WalkieTalkieEnd', category: 'PTT', icon: '⏹️' },
+  // CallOut (8.32-8.33)
+  '6251016': { name: 'CallOutStart', category: 'CallOut', icon: '📤' },
+  '6251017': { name: 'CallOutEnd', category: 'CallOut', icon: '⏹️' },
+  // VoipChannel (8.38-8.42)
+  '6251018': { name: 'VoipChannelStart', category: 'VoIP', icon: '📡' },
+  '6251019': { name: 'VoipChannelParticipantJoined', category: 'VoIP', icon: '➕' },
+  '6251020': { name: 'VoipChannelParticipantReleasedFloor', category: 'VoIP', icon: '🔓' },
+  '6251021': { name: 'VoipChannelParticipantLeft', category: 'VoIP', icon: '➖' },
+  '6251022': { name: 'VoipChannelEnd', category: 'VoIP', icon: '⏹️' },
+  // LiveStream (8.43-8.46)
+  '6251023': { name: 'LiveStreamStartEdrEvent', category: 'Streaming', icon: '▶️' },
+  '6251024': { name: 'LiveStreamParticipantJoined', category: 'Streaming', icon: '➕' },
+  '6251025': { name: 'LiveStreamParticipantLeft', category: 'Streaming', icon: '➖' },
+  '6251026': { name: 'LiveStreamStopEdrEvent', category: 'Streaming', icon: '⏹️' },
+  // System / Register / ApplicationEnd (8.47-8.48)
+  '6251027': { name: 'RegisterEdrEvent', category: 'System', icon: '✅' },
+  '6251028': { name: 'ApplicationEndEdrEvent', category: 'System', icon: '⏹️' },
+  // ConferenceCallParticipantJoined EDR (8.29 alt)
+  '6251029': { name: 'ConferenceCallParticipantJoined', category: 'Conference', icon: '➕' },
+  // CallIn (8.34-8.37)
+  '6251030': { name: 'CallInStart', category: 'CallIn', icon: '📥' },
+  '6251031': { name: 'CallInInvitationRefused', category: 'CallIn', icon: '🚫' },
+  '6251032': { name: 'CallInParticipantJoined', category: 'CallIn', icon: '➕' },
+  '6251033': { name: 'CallInEnd', category: 'CallIn', icon: '⏹️' },
+  // AmbientListening (8.16-8.20)
+  '6251034': { name: 'AmbientListeningStart', category: 'Ambient', icon: '👂' },
+  '6251035': { name: 'AmbientListeningInvitationRefused', category: 'Ambient', icon: '🚫' },
+  '6251036': { name: 'AmbientListeningParticipantJoined', category: 'Ambient', icon: '➕' },
+  '6251037': { name: 'AmbientListeningParticipantLeft', category: 'Ambient', icon: '➖' },
+  '6251038': { name: 'AmbientListeningEnd', category: 'Ambient', icon: '🔕' },
+  // BroadcastCall (8.21-8.26)
+  '6251039': { name: 'BroadcastCallStart', category: 'Broadcast', icon: '📣' },
+  '6251040': { name: 'BroadcastCallInvitationRefused', category: 'Broadcast', icon: '🚫' },
+  '6251041': { name: 'BroadcastCallParticipantJoined', category: 'Broadcast', icon: '➕' },
+  '6251042': { name: 'BroadcastCallParticipantReleasedFloor', category: 'Broadcast', icon: '🔓' },
+  '6251043': { name: 'BroadcastCallParticipantLeft', category: 'Broadcast', icon: '➖' },
+  '6251044': { name: 'BroadcastCallEnd', category: 'Broadcast', icon: '⏹️' },
+  // ConferenceCall (8.27-8.31)
+  '6251045': { name: 'ConferenceCallStart', category: 'Conference', icon: '👥' },
+  '6251046': { name: 'ConferenceCallInvitationRefused', category: 'Conference', icon: '🚫' },
+  '6251047': { name: 'ConferenceCallParticipantJoined', category: 'Conference', icon: '➕' },
+  '6251048': { name: 'ConferenceCallParticipantLeft', category: 'Conference', icon: '➖' },
+  '6251049': { name: 'ConferenceCallEnd', category: 'Conference', icon: '⏹️' },
+};
+
+const EDR_PARAM_FIELDS = [
+  'sms_from','sms_to','sms_type','sms_send_timestamp','sms_send_reason',
+  'sms_status','sms_smsc_id','sms_smsc_message_id','sms_smsc_command_status',
+  'session_id','server_fqdn','callee','participant','reason','duration',
+  'media_type','location_lat','location_long','location_date','is_emergency_call',
+  'kpi1_min','kpi1_max','kpi1_avg','kpi1_computed','kpi1_beyond',
+  'kpi2_min','kpi2_max','kpi2_avg','kpi2_computed','kpi2_beyond',
+  'kpi3_min','kpi3_max','kpi3_avg','kpi3_computed','kpi3_beyond',
+  'kpi4_min','kpi4_max','kpi4_avg','kpi4_computed','kpi4_beyond',
+  'packet_loss_min','packet_loss_max','packet_loss_avg',
+  'int_jitter_min','int_jitter_max','int_jitter_avg',
+  'rtt_min','rtt_max','rtt_avg'
+];
+
+const CDR_PARAM_FIELDS = [
+  'session_id','server_fqdn','caller','callee','duration',
+  'start_date','end_date','status','reason','termination_side',
+  'media_type','is_emergency_call',
+  'kpi1_min','kpi1_max','kpi1_avg','kpi1_computed','kpi1_beyond',
+  'kpi2_min','kpi2_max','kpi2_avg','kpi2_computed','kpi2_beyond',
+  'kpi3_min','kpi3_max','kpi3_avg','kpi3_computed','kpi3_beyond',
+  'kpi4_min','kpi4_max','kpi4_avg','kpi4_computed','kpi4_beyond',
+  'packet_loss_min','packet_loss_max','packet_loss_avg',
+  'int_jitter_min','int_jitter_max','int_jitter_avg',
+  'rtt_min','rtt_max','rtt_avg'
+];
+
+const CHART_COLORS = [
+  '#00d4ff','#00ffcc','#7c5cfc','#ff6b9d','#ffab00',
+  '#00e676','#ff5252','#40c4ff','#b2ff59','#ff80ab',
+  '#82b1ff','#ffd740','#69f0ae','#e040fb','#40c4ff',
+  '#ff6e40','#448aff','#18ffff','#eeff41','#ff4081'
+];
+
+const TABLE_PAGE_SIZE = 500;
+
+const METRIC_THRESHOLDS = {
+  // 3GPP TS 22.179 MCPTT KPIs: KPI1/KPI3 <300 ms, KPI2 <1000 ms,
+  // KPI4 <150 ms without application-layer encryption, <350 ms with it.
+  kpi1: { ok: 300, label: 'KPI1 <= 300 ms' },
+  kpi2: { ok: 1000, label: 'KPI2 <= 1000 ms' },
+  kpi3: { ok: 300, label: 'KPI3 <= 300 ms' },
+  kpi4: { ok: 150, warn: 350, label: 'KPI4 <= 150 ms / <= 350 ms chiffré' },
+  // General real-time voice expectations.
+  rtt: { ok: 150, warn: 300, label: 'RTT <= 150 ms / <= 300 ms' },
+  int_jitter: { ok: 30, warn: 60, label: 'Jitter <= 30 ms / <= 60 ms' },
+  packet_loss: { ok: 1, warn: 3, label: 'Packet loss <= 1 % / <= 3 %' }
+};
+
+// ============ GLOBAL STATE ============
+let appState = {
+  events: [],
+  sessions: [],
+  fileName: '',
+  activeTab: 'dashboard',
+  eventsSortColumn: 'date',
+  eventsSortDirection: 'asc',
+  eventsPage: 1,
+  sessionsSortColumn: null,
+  sessionsSortDirection: 'asc',
+  sessionsPage: 1,
+  kpiSortColumn: null,
+  kpiSortDirection: 'asc',
+  kpiPage: 1,
+  eventFilter: '',
+  statusFilter: 'all',
+  categoryFilter: 'all',
+  charts: {},
+  dateRange: { min: null, max: null }
+};
+
+// ============ UTILITY FUNCTIONS ============
+
+function safeStr(v) { return (v === undefined || v === null) ? '' : String(v).trim(); }
+function parseNum(v) { const n = parseFloat(v); return isNaN(n) ? null : n; }
+function metricBaseFromField(field) {
+  const f = safeStr(field).toLowerCase();
+  if (/^kpi1_(min|max|avg)$/.test(f) || f === 'kpi1') return 'kpi1';
+  if (/^kpi2_(min|max|avg)$/.test(f) || f === 'kpi2') return 'kpi2';
+  if (/^kpi3_(min|max|avg)$/.test(f) || f === 'kpi3') return 'kpi3';
+  if (/^kpi4_(min|max|avg)$/.test(f) || f === 'kpi4') return 'kpi4';
+  if (/^packet_loss_(min|max|avg)$/.test(f) || f === 'packet_loss') return 'packet_loss';
+  if (/^int_jitter_(min|max|avg)$/.test(f) || f === 'int_jitter' || f === 'jitter') return 'int_jitter';
+  if (/^rtt_(min|max|avg)$/.test(f) || f === 'rtt') return 'rtt';
+  return null;
+}
+function metricTone(base, value) {
+  const threshold = METRIC_THRESHOLDS[base];
+  const v = parseNum(value);
+  if (!threshold || v == null) return '';
+  if (v <= threshold.ok) return 'ok';
+  if (threshold.warn != null && v <= threshold.warn) return 'warn';
+  return 'bad';
+}
+function metricToneClass(base, value) {
+  const tone = metricTone(base, value);
+  return tone ? `metric-tone-${tone}` : 'metric-tone-muted';
+}
+function metricToneStyle(base, value) {
+  const cls = metricToneClass(base, value);
+  if (cls === 'metric-tone-ok') return 'color:var(--success);font-weight:700';
+  if (cls === 'metric-tone-warn') return 'color:var(--warn);font-weight:700';
+  if (cls === 'metric-tone-bad') return 'color:var(--danger);font-weight:800';
+  return '';
+}
+function metricThresholdLabel(base) {
+  return METRIC_THRESHOLDS[base]?.label || '';
+}
+function debounce(fn, delay = 120) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+function getPageItems(items, pageKey) {
+  const totalPages = Math.max(1, Math.ceil(items.length / TABLE_PAGE_SIZE));
+  const page = Math.min(Math.max(appState[pageKey] || 1, 1), totalPages);
+  appState[pageKey] = page;
+  const start = (page - 1) * TABLE_PAGE_SIZE;
+  return { page, totalPages, start, items: items.slice(start, start + TABLE_PAGE_SIZE) };
+}
+function renderTablePager(infoId, total, pageData, singular, pageKey, renderFn) {
+  const info = document.getElementById(infoId);
+  if (!info) return;
+  const end = total === 0 ? 0 : pageData.start + pageData.items.length;
+  info.innerHTML = `${total ? pageData.start + 1 : 0}-${end} / ${total} ${singular}(s) <span class="table-pager">
+    <button class="pager-btn" data-page-action="prev" ${pageData.page <= 1 ? 'disabled' : ''} title="Page précédente">‹</button>
+    <span class="pager-page">${pageData.page}/${pageData.totalPages}</span>
+    <button class="pager-btn" data-page-action="next" ${pageData.page >= pageData.totalPages ? 'disabled' : ''} title="Page suivante">›</button>
+  </span>`;
+  info.querySelectorAll('.pager-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      appState[pageKey] += btn.dataset.pageAction === 'next' ? 1 : -1;
+      renderFn();
+    });
+  });
+}
+function getRawParts(evt) {
+  const values = (evt.raw || '').split('|');
+  const mainCount = parseInt(values[0], 10) || 0;
+  const mainBlock = values.slice(1, mainCount + 1);
+  const groupsIdx = mainCount + 1;
+  const groupsCount = parseInt(values[groupsIdx], 10) || 0;
+  const groupsBlock = values.slice(groupsIdx + 1, groupsIdx + 1 + groupsCount);
+  const paramsIdx = groupsIdx + 1 + groupsCount;
+  const paramsCount = parseInt(values[paramsIdx], 10) || 0;
+  const paramsBlock = values.slice(paramsIdx + 1, paramsIdx + 1 + paramsCount);
+  const paramFields = paramsCount === CDR_PARAM_FIELDS.length ? CDR_PARAM_FIELDS : EDR_PARAM_FIELDS;
+  return { mainBlock, groupsBlock, paramsBlock, paramFields };
+}
+const RAW_FIELD_LABELS = {
+  datetime: 'Date', event_id: 'Événement', g1_msisdn: 'MSISDN', g2_org_id: 'Org',
+  session_id: 'Session', server_fqdn: 'Serveur', caller: 'Appelant', callee: 'Appelé',
+  participant: 'Participant', duration: 'Durée', start_date: 'Début', end_date: 'Fin',
+  status: 'Statut', reason: 'Raison', termination_side: 'Terminaison', media_type: 'Média',
+  is_emergency_call: 'Urgence', sms_from: 'SMS de', sms_to: 'SMS vers', sms_type: 'Type SMS',
+  sms_send_timestamp: 'Envoi SMS', sms_send_reason: 'Raison SMS', sms_status: 'Statut SMS',
+  sms_smsc_id: 'SMSC', sms_smsc_message_id: 'Msg ID', sms_smsc_command_status: 'Cmd SMSC',
+  location_lat: 'Latitude', location_long: 'Longitude', location_date: 'Date position',
+  kpi1_avg: 'KPI1 moy.', kpi1_min: 'KPI1 min', kpi1_max: 'KPI1 max', kpi1_computed: 'KPI1 comp.', kpi1_beyond: 'KPI1 hors seuil',
+  kpi2_avg: 'KPI2 moy.', kpi2_min: 'KPI2 min', kpi2_max: 'KPI2 max', kpi2_computed: 'KPI2 comp.', kpi2_beyond: 'KPI2 hors seuil',
+  kpi3_avg: 'KPI3 moy.', kpi3_min: 'KPI3 min', kpi3_max: 'KPI3 max', kpi3_computed: 'KPI3 comp.', kpi3_beyond: 'KPI3 hors seuil',
+  kpi4_avg: 'KPI4 moy.', kpi4_min: 'KPI4 min', kpi4_max: 'KPI4 max', kpi4_computed: 'KPI4 comp.', kpi4_beyond: 'KPI4 hors seuil',
+  packet_loss_avg: 'Loss moy.', packet_loss_min: 'Loss min', packet_loss_max: 'Loss max',
+  int_jitter_avg: 'Jitter moy.', int_jitter_min: 'Jitter min', int_jitter_max: 'Jitter max',
+  rtt_avg: 'RTT moy.', rtt_min: 'RTT min', rtt_max: 'RTT max'
+};
+const RAW_KEY_FIELDS = new Set([
+  'datetime','event_id','g1_msisdn','g2_org_id',
+  'session_id','caller','callee','participant','status','reason','termination_side',
+  'start_date','end_date','duration','media_type','is_emergency_call',
+  'sms_from','sms_to','sms_status','sms_send_timestamp',
+  'location_lat','location_long',
+  'kpi1_avg','kpi2_avg','kpi3_avg','kpi4_avg','packet_loss_avg','int_jitter_avg','rtt_avg',
+  'kpi1_beyond','kpi2_beyond','kpi3_beyond','kpi4_beyond'
+]);
+function rawFieldLabel(header) {
+  return RAW_FIELD_LABELS[header] || header;
+}
+function rawFieldImportance(header) {
+  if (RAW_KEY_FIELDS.has(header)) return 'key';
+  if (/_min$|_max$|_computed$/.test(header)) return 'secondary';
+  return '';
+}
+function renderRawField(field) {
+  const header = field.header || `field_${field.index || ''}`;
+  const metricBase = metricBaseFromField(header);
+  const toneClass = metricBase ? metricToneClass(metricBase, field.value) : '';
+  const thresholdLabel = metricBase ? metricThresholdLabel(metricBase) : '';
+  const importance = rawFieldImportance(header);
+  const importanceClass = importance === 'key' ? ' raw-field-key' : importance === 'secondary' ? ' raw-field-secondary' : '';
+  return `<div class="raw-field${importanceClass}">
+    <span class="raw-field-index">${field.index ?? ''}</span>
+    <span class="raw-field-name" title="${escapeAttr(header)}">${escapeHtml(rawFieldLabel(header))}</span>
+    <span class="raw-field-value ${toneClass}" ${thresholdLabel ? `title="${escapeAttr(thresholdLabel)}"` : ''}>${escapeHtml(field.value || '')}</span>
+  </div>`;
+}
+function renderRawFieldSection(title, fields) {
+  const html = fields.map(renderRawField).join('');
+  return `<div class="raw-field-section">
+      <h4>${title}<span class="raw-field-count">${fields.length}</span></h4>
+      <div class="raw-field-grid">${html || '<div class="raw-field"><span class="raw-field-value">Aucune donnée</span></div>'}</div>
+    </div>`;
+}
+function renderRawMetricCell(label, field, base) {
+  const value = field?.value ?? '';
+  const toneClass = base ? metricToneClass(base, value) : '';
+  const thresholdLabel = base ? metricThresholdLabel(base) : '';
+  return `<span class="raw-metric-cell">
+    <span class="raw-metric-label">${label}</span>
+    <span class="raw-metric-value ${toneClass}" ${thresholdLabel ? `title="${escapeAttr(thresholdLabel)}"` : ''}>${escapeHtml(value || '-')}</span>
+  </span>`;
+}
+function renderRawMetricSection(title, metrics, byName) {
+  const rows = metrics.map(metric => {
+    const avg = byName.get(`${metric.base}_avg`);
+    const min = byName.get(`${metric.base}_min`);
+    const max = byName.get(`${metric.base}_max`);
+    const computed = byName.get(`${metric.base}_computed`);
+    const beyond = byName.get(`${metric.base}_beyond`);
+    if (!avg && !min && !max && !computed && !beyond) return '';
+    return `<div class="raw-metric-row">
+      <span class="raw-metric-row-name">${metric.label}</span>
+      ${renderRawMetricCell('moy.', avg, metric.base)}
+      ${renderRawMetricCell('min', min, metric.base)}
+      ${renderRawMetricCell('max', max, metric.base)}
+      ${computed ? renderRawMetricCell('comp.', computed, '') : '<span></span>'}
+      ${beyond ? renderRawMetricCell('hors', beyond, '') : '<span></span>'}
+    </div>`;
+  }).filter(Boolean).join('');
+  return rows ? `<div class="raw-field-section">
+      <h4>${title}<span class="raw-field-count">${metrics.length}</span></h4>
+      <div class="raw-metric-grid">${rows}</div>
+    </div>` : '';
+}
+function fieldsFromValues(headers, values, offset = 1) {
+  return values.map((value, index) => ({
+    index: index + offset,
+    header: headers[index] || `field_${index + offset}`,
+    value
+  }));
+}
+function renderRawParamSections(paramType, headers, values) {
+  const byName = new Map(fieldsFromValues(headers, values).map(field => [field.header, field]));
+  const specs = paramType === 'CDR' ? [
+    { title: 'Qui / où', fields: ['session_id','caller','callee','server_fqdn'] },
+    { title: 'Quand / média', fields: ['start_date','end_date','duration','media_type','is_emergency_call'] },
+    { title: 'Issue de l’appel', fields: ['status','reason','termination_side'] },
+    { title: 'KPI MCPTT', metricRows: [
+      { label: 'KPI1', base: 'kpi1' }, { label: 'KPI2', base: 'kpi2' },
+      { label: 'KPI3', base: 'kpi3' }, { label: 'KPI4', base: 'kpi4' }
+    ] },
+    { title: 'Qualité réseau', metricRows: [
+      { label: 'Jitter', base: 'int_jitter' },
+      { label: 'RTT', base: 'rtt' },
+      { label: 'Packet loss', base: 'packet_loss' }
+    ] }
+  ] : [
+    { title: 'SMS', fields: ['sms_status','sms_from','sms_to','sms_send_timestamp','sms_type','sms_send_reason','sms_smsc_id','sms_smsc_message_id','sms_smsc_command_status'] },
+    { title: 'Qui / où', fields: ['session_id','callee','participant','server_fqdn'] },
+    { title: 'Événement', fields: ['reason','duration','media_type','is_emergency_call'] },
+    { title: 'Localisation', fields: ['location_lat','location_long','location_date'] },
+    { title: 'KPI MCPTT', metricRows: [
+      { label: 'KPI1', base: 'kpi1' }, { label: 'KPI2', base: 'kpi2' },
+      { label: 'KPI3', base: 'kpi3' }, { label: 'KPI4', base: 'kpi4' }
+    ] },
+    { title: 'Qualité réseau', metricRows: [
+      { label: 'Jitter', base: 'int_jitter' },
+      { label: 'RTT', base: 'rtt' },
+      { label: 'Packet loss', base: 'packet_loss' }
+    ] }
+  ];
+  const used = new Set();
+  const sections = specs.map(spec => {
+    if (spec.metricRows) {
+      spec.metricRows.forEach(metric => ['avg','min','max','computed','beyond'].forEach(suffix => used.add(`${metric.base}_${suffix}`)));
+      return renderRawMetricSection(spec.title, spec.metricRows, byName);
+    }
+    const sectionFields = spec.fields.map(name => byName.get(name)).filter(Boolean);
+    sectionFields.forEach(field => used.add(field.header));
+    return sectionFields.length ? renderRawFieldSection(spec.title, sectionFields) : '';
+  });
+  const otherFields = fieldsFromValues(headers, values).filter(field => !used.has(field.header));
+  if (otherFields.length) sections.push(renderRawFieldSection('Autres paramètres', otherFields));
+  return sections.join('');
+}
+function buildRawEventHTML(evt, options = {}) {
+  const parts = getRawParts(evt);
+  const mainHeaders = ['datetime', 'event_id'];
+  const groupHeaders = ['g1_msisdn', 'g2_org_id'];
+  const paramType = parts.paramsBlock.length === CDR_PARAM_FIELDS.length ? 'CDR' : 'EDR';
+  const contextFields = [
+    ...fieldsFromValues(mainHeaders, parts.mainBlock, 1),
+    ...fieldsFromValues(groupHeaders, parts.groupsBlock, parts.mainBlock.length + 1)
+  ];
+  const fieldsHtml = `
+    ${renderRawFieldSection('Contexte événement', contextFields)}
+    ${renderRawParamSections(paramType, parts.paramFields, parts.paramsBlock)}
+  `;
+  return `
+    ${options.hideTitle ? '' : `<div class="raw-summary">
+      <div class="detail-item"><span class="detail-label">Événement</span><span class="detail-value">${evt.icon} ${escapeHtml(evt.eventName)}</span></div>
+      <div class="detail-item"><span class="detail-label">ID</span><span class="detail-value">${escapeHtml(evt.eventId)}</span></div>
+      <div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${paramType} · ${parts.paramsBlock.length} champ(s)</span></div>
+    </div>`}
+    ${options.hideTitle ? `<div class="raw-summary"><div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">${paramType} · ${parts.paramsBlock.length} champ(s)</span></div></div>` : ''}
+    <div class="raw-code">${escapeHtml(evt.raw || '')}</div>
+    <details class="raw-fields">
+      <summary>Voir les champs décodés</summary>
+      <div class="raw-fields-body">${fieldsHtml}</div>
+    </details>
+  `;
+}
+function parseDate(v) {
+  if (!v) return null;
+  // Format: "2019-05-05 08:15:25"
+  const d = new Date(v.replace(' ','T'));
+  return isNaN(d.getTime()) ? null : d;
+}
+function formatDate(d) {
+  if (!d) return '-';
+  return d.toLocaleString('fr-FR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function formatDuration(sec) {
+  if (sec == null || isNaN(sec)) return '-';
+  sec = Math.round(sec);
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  if(h>0) return `${h}h ${m}m ${s}s`;
+  if(m>0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+function formatMetricInline(base, avg, min, max, unit) {
+  const cls = metricToneClass(base, avg);
+  const title = metricThresholdLabel(base);
+  return `<span class="${cls}" ${title ? `title="${escapeAttr(title)}"` : ''}>moy. <strong>${avg ?? '-'}${unit}</strong></span><span class="detail-sub">min ${min ?? '-'} · max ${max ?? '-'}</span>`;
+}
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function toast(msg, isError=false) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (isError ? ' toast-error' : '');
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(()=>el.remove(),300); }, 4000);
+}
+
+// ============ CDR/EDR LINE PARSER ============
+
+function parseLine(line) {
+  line = line.trim();
+  if (!line) return null;
+
+  const values = line.split('|');
+
+  // Block 1: Main
+  const mainCount = parseInt(values[0], 10);
+  if (isNaN(mainCount) || values.length < mainCount + 1) return null;
+  const mainBlock = values.slice(1, mainCount + 1);
+
+  if (mainBlock.length < 2) return null;
+  const datetime = mainBlock[0];
+  const eventId = mainBlock[1];
+
+  // Block 2: Groups
+  const groupsIdx = mainCount + 1;
+  const groupsCount = parseInt(values[groupsIdx], 10);
+  if (isNaN(groupsCount)) return null;
+  const groupsBlock = values.slice(groupsIdx + 1, groupsIdx + 1 + groupsCount);
+
+  // Block 3: Parameters
+  const paramsIdx = groupsIdx + 1 + groupsCount;
+  const paramsCount = parseInt(values[paramsIdx], 10);
+  if (isNaN(paramsCount)) return null;
+  const paramsBlock = values.slice(paramsIdx + 1, paramsIdx + 1 + paramsCount);
+
+  // Determine if CDR or EDR based on param count
+  const paramFields = paramsCount === 41 ? CDR_PARAM_FIELDS : EDR_PARAM_FIELDS;
+
+  const params = {};
+  paramFields.forEach((field, i) => {
+    params[field] = safeStr(paramsBlock[i]);
+  });
+
+  const evtInfo = EVENT_TYPES[eventId] || { name: `Unknown (${eventId})`, category: 'Other', icon: '❓' };
+
+  const date = parseDate(datetime);
+
+  return {
+    raw: line,
+    datetime,
+    date,
+    eventId,
+    eventName: evtInfo.name,
+    category: evtInfo.category,
+    icon: evtInfo.icon,
+    g1_msisdn: safeStr(groupsBlock[0]),
+    g2_org_id: safeStr(groupsBlock[1]),
+    session_id: params.session_id || '',
+    params,
+    paramCount: paramsCount
+  };
+}
+
+function parseAll(text, onProgress) {
+  const lines = text.split(/\r?\n/);
+  const events = [];
+  const errors = [];
+  const total = lines.length;
+  const CHUNK_SIZE = 8000;
+
+  for (let i = 0; i < total; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    try {
+      const evt = parseLine(line);
+      if (evt) {
+        evt.uid = events.length;
+        events.push(evt);
+      } else {
+        errors.push({ line: i + 1, text: line.substring(0, 80) });
+      }
+    } catch(e) {
+      errors.push({ line: i + 1, text: line.substring(0, 80), error: e.message });
+    }
+
+    if (onProgress && i > 0 && i % CHUNK_SIZE === 0) {
+      onProgress(i, total, events.length, errors.length);
+    }
+  }
+
+  return { events, errors };
+}
+
+// ============ CORRELATION ENGINE ============
+
+function correlateEvents(events) {
+  // Register (6251027) and ApplicationEnd (6251028) never carry a session_id.
+  // Creating a pseudo-session per event would produce millions of orphan entries.
+  const NO_SESSION_IDS = new Set(['6251027', '6251028']);
+
+  const sessionMap = new Map();
+
+  events.forEach(evt => {
+    if (!evt.session_id && NO_SESSION_IDS.has(evt.eventId)) return;
+    const sid = evt.session_id || `_nosession_${evt.eventId}_${evt.datetime}_${Math.random().toString(36).substr(2,6)}`;
+    if (!sessionMap.has(sid)) {
+      sessionMap.set(sid, {
+        sessionId: sid,
+        events: [],
+        startTime: null,
+        endTime: null,
+        duration: null,
+        status: 'unknown',
+        category: evt.category,
+        msisdn: evt.g1_msisdn,
+        org: evt.g2_org_id,
+        allCategories: new Set(),
+        allMsisdns: new Set(),
+        allOrgIds: new Set(),
+        allEventNames: new Set(),
+        eventCount: 0
+      });
+    }
+    const sess = sessionMap.get(sid);
+    sess.events.push(evt);
+    sess.allCategories.add(evt.category);
+    sess.allMsisdns.add(evt.g1_msisdn);
+    if (evt.g2_org_id) sess.allOrgIds.add(evt.g2_org_id);
+    sess.allEventNames.add(evt.eventName);
+    sess.eventCount++;
+  });
+
+  // Compute session-level metrics
+  const sessions = [];
+  sessionMap.forEach(sess => {
+    sess.events.sort((a,b) => (a.date||0) - (b.date||0));
+
+    const times = sess.events.map(e=>e.date).filter(Boolean);
+    if (times.length > 0) {
+      sess.startTime = times[0];
+      sess.endTime = times[times.length-1];
+      sess.duration = (sess.endTime - sess.startTime) / 1000;
+    }
+
+    // CDR events carry a 'status' field; EDR events do not.
+    // A group session can have hundreds of CDR records (one per participant-call).
+    const cdrEvents = sess.events.filter(e => e.params && e.params.status);
+    const cdrEvent  = cdrEvents[0]; // kept for scalar fields (caller, callee, media_type…)
+
+    if (cdrEvents.length > 0) {
+      // Status: OK if majority OK, NOK otherwise (avoids masking a failing session)
+      const okCount  = cdrEvents.filter(e => e.params.status === 'OK').length;
+      const nokCount = cdrEvents.length - okCount;
+      sess.status = okCount >= nokCount ? 'OK' : 'NOK';
+    } else {
+      const END_IDS = new Set(['6251009','6251015','6251017','6251022','6251026','6251033','6251038','6251044','6251049']);
+      const hasEnd = sess.events.some(e => END_IDS.has(e.eventId) || (e.eventName||'').toLowerCase().includes('end'));
+      sess.status = hasEnd ? 'OK' : 'in-progress';
+    }
+
+    // For individual calls (1 CDR) use the CDR duration; for group sessions keep
+    // the timestamp-based spread which is more meaningful than one participant's call.
+    if (cdrEvents.length === 1 && cdrEvent.params.duration) {
+      sess.duration = parseNum(cdrEvent.params.duration);
+    }
+
+    // Aggregate KPI/QoS across ALL CDR events in the session
+    if (cdrEvents.length > 0) {
+      const nums = (field) => cdrEvents.map(e => parseNum(e.params[field])).filter(v => v != null);
+      const avg  = (field) => { const v = nums(field); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+      const mn   = (field) => { const v = nums(field); return v.length ? Math.min(...v) : null; };
+      const mx   = (field) => { const v = nums(field); return v.length ? Math.max(...v) : null; };
+      const sum  = (field) => { const v = nums(field); return v.length ? v.reduce((a,b)=>a+b,0) : null; };
+
+      sess.kpi1_avg = avg('kpi1_avg'); sess.kpi1_min = mn('kpi1_min'); sess.kpi1_max = mx('kpi1_max');
+      sess.kpi1_computed = avg('kpi1_computed'); sess.kpi1_beyond = sum('kpi1_beyond');
+      sess.kpi2_avg = avg('kpi2_avg'); sess.kpi2_min = mn('kpi2_min'); sess.kpi2_max = mx('kpi2_max');
+      sess.kpi2_computed = avg('kpi2_computed'); sess.kpi2_beyond = sum('kpi2_beyond');
+      sess.kpi3_avg = avg('kpi3_avg'); sess.kpi3_min = mn('kpi3_min'); sess.kpi3_max = mx('kpi3_max');
+      sess.kpi3_computed = avg('kpi3_computed'); sess.kpi3_beyond = sum('kpi3_beyond');
+      sess.kpi4_avg = avg('kpi4_avg'); sess.kpi4_min = mn('kpi4_min'); sess.kpi4_max = mx('kpi4_max');
+      sess.kpi4_computed = avg('kpi4_computed'); sess.kpi4_beyond = sum('kpi4_beyond');
+      sess.packet_loss_avg = avg('packet_loss_avg'); sess.packet_loss_min = mn('packet_loss_min'); sess.packet_loss_max = mx('packet_loss_max');
+      sess.int_jitter_avg  = avg('int_jitter_avg');  sess.int_jitter_min  = mn('int_jitter_min');  sess.int_jitter_max  = mx('int_jitter_max');
+      sess.rtt_avg         = avg('rtt_avg');          sess.rtt_min         = mn('rtt_min');          sess.rtt_max         = mx('rtt_max');
+
+      sess.media_type      = cdrEvent.params.media_type;
+      sess.is_emergency    = cdrEvent.params.is_emergency_call;
+      sess.reason          = cdrEvent.params.reason;
+      sess.termination_side = cdrEvent.params.termination_side;
+      sess.cdrCount        = cdrEvents.length;
+    }
+
+    const catCounts = {};
+    sess.events.forEach(e => { catCounts[e.category] = (catCounts[e.category]||0)+1; });
+    sess.dominantCategory = Object.entries(catCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'Other';
+    const eventTypeCounts = {};
+    sess.events.forEach(e => { eventTypeCounts[e.eventName] = (eventTypeCounts[e.eventName]||0)+1; });
+    sess.eventType = Object.entries(eventTypeCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || [...sess.allEventNames][0] || 'Other';
+
+    sess.org = sess.allOrgIds.size > 0 ? [...sess.allOrgIds].join(', ') : (cdrEvent?.g2_org_id || '');
+    sess.caller = cdrEvent?.params.caller || sess.msisdn;
+    sess.callee = cdrEvent?.params.callee || '';
+
+    sessions.push(sess);
+  });
+
+  // Sort sessions by start time
+  sessions.sort((a,b) => (b.startTime||0) - (a.startTime||0));
+
+  return sessions;
+}
+
+// ============ STATISTICS ENGINE ============
+
+function computeStatistics(events, sessions) {
+  const totalEvents = events.length;
+  const totalSessions = sessions.length;
+  const sessionsWithDuration = sessions.filter(s => s.duration != null && s.duration > 0);
+  const avgDuration = sessionsWithDuration.length > 0
+    ? sessionsWithDuration.reduce((sum,s)=>sum+s.duration,0) / sessionsWithDuration.length
+    : 0;
+  const okSessions = sessions.filter(s => s.status === 'OK').length;
+  const nokSessions = sessions.filter(s => s.status === 'NOK').length;
+  const successRate = sessions.filter(s => s.status === 'OK' || s.status === 'NOK').length > 0
+    ? (okSessions / (okSessions + nokSessions) * 100) : 0;
+
+  // Date range — use reduce, not spread, to avoid stack overflow with millions of events
+  const dates = events.map(e=>e.date).filter(Boolean);
+  const dateMin = dates.length > 0 ? new Date(dates.reduce((a,b) => a < b ? a : b)) : null;
+  const dateMax = dates.length > 0 ? new Date(dates.reduce((a,b) => a > b ? a : b)) : null;
+
+  // Event type distribution
+  const eventTypeDist = {};
+  events.forEach(e => {
+    const key = e.eventName;
+    eventTypeDist[key] = (eventTypeDist[key]||0) + 1;
+  });
+
+  // Category distribution
+  const categoryDist = {};
+  events.forEach(e => {
+    categoryDist[e.category] = (categoryDist[e.category]||0) + 1;
+  });
+
+  // Hourly timeline
+  const hourlyBins = {};
+  events.forEach(e => {
+    if (e.date) {
+      const hour = new Date(e.date.getFullYear(), e.date.getMonth(), e.date.getDate(), e.date.getHours()).getTime();
+      hourlyBins[hour] = (hourlyBins[hour]||0) + 1;
+    }
+  });
+
+  // Duration distribution
+  const durationBins = {};
+  sessionsWithDuration.forEach(s => {
+    const bucket = Math.floor(s.duration / 10) * 10; // 10-second buckets
+    const label = `${bucket}-${bucket+9}s`;
+    durationBins[label] = (durationBins[label]||0) + 1;
+  });
+
+  // Status breakdown
+  const statusDist = {};
+  sessions.forEach(s => {
+    const st = s.status || 'unknown';
+    statusDist[st] = (statusDist[st]||0) + 1;
+  });
+
+  // Unique MSISDNs
+  const msisdns = new Set(events.map(e=>e.g1_msisdn).filter(Boolean));
+
+  // Unique Orgs
+  const orgs = new Set(events.map(e=>e.g2_org_id).filter(Boolean));
+
+  // Emergency calls
+  const emergencySessions = sessions.filter(s => s.is_emergency === 'YES' || s.is_emergency === 'OUI');
+
+  return {
+    totalEvents,
+    totalSessions,
+    avgDuration,
+    okSessions,
+    nokSessions,
+    successRate,
+    dateMin,
+    dateMax,
+    eventTypeDist,
+    categoryDist,
+    hourlyBins,
+    durationBins,
+    statusDist,
+    uniqueMsisdns: msisdns.size,
+    uniqueOrgs: orgs.size,
+    emergencySessions: emergencySessions.length,
+    sessionsWithDuration
+  };
+}
+
+// ============ TAR EXTRACTION ============
+
+function parseTar(buffer) {
+  const files = [];
+  let offset = 0;
+
+  while (offset < buffer.byteLength - 512) {
+    const header = new Uint8Array(buffer, offset, 512);
+
+    // Check for end-of-archive (two consecutive zero-filled blocks)
+    let allZero = true;
+    for (let i = 0; i < 512; i++) {
+      if (header[i] !== 0) { allZero = false; break; }
+    }
+    if (allZero) {
+      // Check next block
+      if (offset + 512 >= buffer.byteLength) break;
+      const nextBlock = new Uint8Array(buffer, offset + 512, 512);
+      let nextAllZero = true;
+      for (let i = 0; i < 512; i++) {
+        if (nextBlock[i] !== 0) { nextAllZero = false; break; }
+      }
+      if (nextAllZero) break;
+    }
+
+    // Parse filename (null-terminated string at offset 0, up to 100 chars)
+    let name = '';
+    for (let i = 0; i < 100; i++) {
+      if (header[i] === 0) break;
+      name += String.fromCharCode(header[i]);
+    }
+
+    // Parse file size (octal string at offset 124, 12 chars)
+    let sizeStr = '';
+    for (let i = 124; i < 136; i++) {
+      if (header[i] === 0 || header[i] === 32) break;
+      sizeStr += String.fromCharCode(header[i]);
+    }
+    const size = parseInt(sizeStr, 8) || 0;
+
+    // Type flag at offset 156
+    const typeFlag = String.fromCharCode(header[156]);
+
+    offset += 512;
+
+    if (name && size > 0 && (typeFlag === '0' || typeFlag === '\x00')) {
+      const data = buffer.slice(offset, offset + size);
+      files.push({ name, size, data: new Uint8Array(data) });
+    } else if (name && typeFlag === '5') {
+      // Directory — skip
+    }
+
+    // Pad to 512-byte boundary
+    offset += Math.ceil(size / 512) * 512;
+  }
+
+  return files;
+}
+
+function extractTgz(arrayBuffer) {
+  try {
+    const decompressed = pako.ungzip(new Uint8Array(arrayBuffer));
+    return parseTar(decompressed.buffer);
+  } catch (e) {
+    console.error('TGZ extraction error:', e);
+    throw new Error('Échec de l\'extraction du fichier .tgz : ' + e.message);
+  }
+}
+
+function readTextFromUint8Array(uint8Array) {
+  const decoder = new TextDecoder('utf-8');
+  return decoder.decode(uint8Array);
+}
+
+// ============ UI RENDERING ============
+
+function showUploadOverlay(show) {
+  document.getElementById('uploadOverlay').style.display = show ? 'flex' : 'none';
+}
+
+function buildMainUI() {
+  const main = document.getElementById('mainContent');
+  // Keep the upload overlay but add content after it
+  let contentEl = document.getElementById('dashboardContent');
+  if (!contentEl) {
+    contentEl = document.createElement('div');
+    contentEl.id = 'dashboardContent';
+    main.appendChild(contentEl);
+  } else {
+    contentEl.innerHTML = '';
+  }
+  return contentEl;
+}
+
+function renderAll() {
+  const { events, sessions } = appState;
+  if (events.length === 0) {
+    showUploadOverlay(true);
+    return;
+  }
+  showUploadOverlay(false);
+
+  const contentEl = buildMainUI();
+  const stats = computeStatistics(events, sessions);
+
+  contentEl.innerHTML = `
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Événements</div>
+        <div class="stat-value" style="color:var(--accent)">${stats.totalEvents.toLocaleString()}</div>
+        <div class="stat-sub">${appState.fileName}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sessions</div>
+        <div class="stat-value" style="color:var(--accent2)">${stats.totalSessions.toLocaleString()}</div>
+        <div class="stat-sub">${stats.uniqueMsisdns} abonné(s) · ${stats.uniqueOrgs} org(s)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Taux de succès</div>
+        <div class="stat-value" style="color:${stats.successRate>=90?'var(--success)':stats.successRate>=50?'var(--warning)':'var(--danger)'}">${stats.successRate.toFixed(1)}%</div>
+        <div class="stat-sub">${stats.okSessions} OK / ${stats.nokSessions} NOK</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Durée moyenne</div>
+        <div class="stat-value" style="color:var(--accent)">${formatDuration(stats.avgDuration)}</div>
+        <div class="stat-sub">${stats.emergencySessions} appel(s) d'urgence</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Période</div>
+        <div class="stat-value" style="font-size:1.1rem;color:var(--text-primary)">${stats.dateMin?stats.dateMin.toLocaleDateString('fr-FR'):'-'}</div>
+        <div class="stat-sub">→ ${stats.dateMax?stats.dateMax.toLocaleDateString('fr-FR'):'-'}</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab" data-tab="events">📋 Événements <span class="tab-count">${stats.totalEvents}</span></button>
+      <button class="tab" data-tab="sessions">🔗 Sessions <span class="tab-count">${stats.totalSessions}</span></button>
+      <button class="tab" data-tab="kpi">🔬 Qualité & KPIs</button>
+    </div>
+
+    <!-- TAB: DASHBOARD -->
+    <div class="tab-panel active" data-panel="dashboard">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Distribution par type d'événement</div>
+          <div class="chart-wrap"><div id="chartEventType" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Distribution par catégorie de service</div>
+          <div class="chart-wrap"><div id="chartCategory" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Statut des sessions</div>
+          <div class="chart-wrap"><div id="chartStatus" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Distribution des durées d'appel</div>
+          <div class="chart-wrap"><div id="chartDuration" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-title">Timeline des événements par heure</div>
+          <div class="chart-wrap"><div id="chartTimeline" style="width:100%;height:100%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: EVENTS -->
+    <div class="tab-panel" data-panel="events">
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <input type="text" id="filterEvents" placeholder="🔍 Rechercher (ID, MSISDN, session...)">
+          <select id="filterCategory">
+            <option value="all">Toutes catégories</option>
+            ${[...new Set(events.map(e=>e.category))].sort().map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+          <span class="toolbar-info" id="eventsInfo"></span>
+        </div>
+        <div class="table-scroll">
+          <table id="eventsTable">
+            <thead>
+              <tr>
+                <th data-sort="datetime">Date</th>
+                <th data-sort="eventId">ID Événement</th>
+                <th data-sort="eventName">Nom</th>
+                <th data-sort="category">Catégorie</th>
+                <th data-sort="g1_msisdn">MSISDN</th>
+                <th data-sort="g2_org_id">Org</th>
+                <th data-sort="session_id">Session ID</th>
+                <th data-sort="params.status">Statut</th>
+                <th data-sort="params.duration">Durée</th>
+                <th>Brut</th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SESSIONS -->
+    <div class="tab-panel" data-panel="sessions">
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <input type="text" id="filterSessions" placeholder="🔍 Rechercher (session ID, appelant, appelé, catégorie...)">
+          <select id="filterSessionStatus">
+            <option value="all">Tous statuts</option>
+            <option value="OK">OK</option>
+            <option value="NOK">NOK</option>
+            <option value="in-progress">En cours</option>
+            <option value="unknown">Inconnu</option>
+          </select>
+          <span class="toolbar-info" id="sessionsInfo"></span>
+        </div>
+        <div class="table-scroll" style="max-height:60vh">
+          <table id="sessionsTable">
+            <thead>
+              <tr>
+                <th style="width:32px;padding:10px 6px"></th>
+                <th data-sort="startTime">Début</th>
+                <th data-sort="sessionId">Session ID</th>
+                <th data-sort="dominantCategory">Type</th>
+                <th data-sort="status">Statut</th>
+                <th data-sort="caller">Appelant</th>
+                <th data-sort="callee" style="width:150px;max-width:150px">Appelé</th>
+                <th data-sort="org">Org</th>
+                <th data-sort="duration">Durée</th>
+                <th data-sort="eventCount">Évts</th>
+                <th data-sort="media_type">Média</th>
+                <th>Brut</th>
+              </tr>
+            </thead>
+            <tbody id="sessionsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: QUALITE & KPIs -->
+    <div class="tab-panel" data-panel="kpi">
+      <div class="stats-bar" id="kpiCards" style="margin-bottom:16px"></div>
+      <div class="charts-grid">
+        <div class="chart-card full-width">
+          <div class="chart-title">KPIs - Valeurs moyennes par indicateur</div>
+          <div class="chart-wrap"><div id="chartKpiAvg" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Distribution KPI1 - MCPTT Access (ms)</div>
+          <div class="chart-wrap"><div id="chartKpi1Dist" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Distribution KPI3 - Mouth-to-Ear (ms)</div>
+          <div class="chart-wrap"><div id="chartKpi3Dist" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-title">QoS - RTT / Jitter / Packet Loss par session</div>
+          <div class="chart-wrap"><div id="chartQos" style="width:100%;height:100%"></div></div>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:16px">
+        <div class="table-toolbar">
+          <input type="text" id="filterKpi" placeholder="🔍 Rechercher session...">
+          <span class="toolbar-info" id="kpiInfo"></span>
+        </div>
+        <div class="table-scroll" style="max-height:50vh">
+          <table id="kpiTable">
+            <thead>
+              <tr>
+                <th data-sort="sessionId">Session</th>
+                <th data-sort="startTime">Temps</th>
+                <th data-sort="eventType">Événement</th>
+                <th data-sort="dominantCategory">Cat.</th>
+                <th data-sort="eventCount">Évts</th>
+                <th data-sort="org">Org</th>
+                <th data-sort="kpi1_avg">KPI1</th>
+                <th data-sort="kpi2_avg">KPI2</th>
+                <th data-sort="kpi3_avg">KPI3</th>
+                <th data-sort="kpi4_avg">KPI4</th>
+                <th data-sort="rtt_avg">RTT</th>
+                <th data-sort="int_jitter_avg">Jitter</th>
+                <th data-sort="packet_loss_avg">Loss</th>
+                <th>Brut</th>
+              </tr>
+            </thead>
+            <tbody id="kpiBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Setup tab switching
+  contentEl.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  // Setup event listeners
+  document.getElementById('filterEvents').addEventListener('input', debounce(() => {
+    appState.eventsPage = 1;
+    renderEventsTable();
+  }, 140));
+  document.getElementById('filterCategory').addEventListener('change', () => {
+    appState.eventsPage = 1;
+    renderEventsTable();
+  });
+  document.getElementById('filterSessions').addEventListener('input', debounce(() => {
+    appState.sessionsPage = 1;
+    renderSessionsTable();
+  }, 140));
+  document.getElementById('filterSessionStatus').addEventListener('change', () => {
+    appState.sessionsPage = 1;
+    renderSessionsTable();
+  });
+  document.getElementById('filterKpi').addEventListener('input', debounce(() => {
+    appState.kpiPage = 1;
+    renderKpiTable();
+  }, 140));
+
+  // Setup sortable headers - events
+  document.querySelectorAll('#eventsTable thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (!col) return;
+      if (appState.eventsSortColumn === col) {
+        appState.eventsSortDirection = appState.eventsSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        appState.eventsSortColumn = col;
+        appState.eventsSortDirection = 'asc';
+      }
+      appState.eventsPage = 1;
+      renderEventsTable();
+    });
+  });
+
+  // Setup sortable headers - sessions
+  document.querySelectorAll('#sessionsTable thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (!col) return;
+      if (appState.sessionsSortColumn === col) {
+        appState.sessionsSortDirection = appState.sessionsSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        appState.sessionsSortColumn = col;
+        appState.sessionsSortDirection = 'asc';
+      }
+      appState.sessionsPage = 1;
+      renderSessionsTable();
+    });
+  });
+
+  // Setup sortable headers - KPI
+  document.querySelectorAll('#kpiTable thead th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (!col) return;
+      if (appState.kpiSortColumn === col) {
+        appState.kpiSortDirection = appState.kpiSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        appState.kpiSortColumn = col;
+        appState.kpiSortDirection = 'asc';
+      }
+      appState.kpiPage = 1;
+      renderKpiTable();
+    });
+  });
+
+  // Render all views
+  renderCharts(stats);
+  renderEventsTable();
+  renderSessionsTable();
+  renderKpiTab();
+}
+
+function switchTab(tabName) {
+  appState.activeTab = tabName;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tabName));
+
+  if (tabName === 'dashboard' || tabName === 'kpi') {
+    setTimeout(() => {
+      Object.values(appState.charts).forEach(c => { try { c.resize(); } catch(e) {} });
+    }, 50);
+  }
+}
+
+function getCC() {
+  const light = document.documentElement.dataset.theme === 'light';
+  const a = light ? '#0284c7' : '#38bdf8';
+  return {
+    text:     light ? '#64748b' : '#5a6578',
+    legend:   light ? '#475569' : '#8494ab',
+    nameTxt:  light ? '#64748b' : '#4d5a6e',
+    split:    light ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.04)',
+    axis:     light ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.07)',
+    ttBg:     light ? 'rgba(255,255,255,0.98)' : 'rgba(13,17,23,0.97)',
+    ttBorder: light ? 'rgba(2,132,199,0.22)' : 'rgba(56,189,248,0.22)',
+    ttText:   light ? '#0f172a' : '#e2e8f4',
+    accent:   a,
+    dzFill:   light ? 'rgba(2,132,199,0.10)' : 'rgba(56,189,248,0.10)',
+    dzBorder: light ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.18)',
+  };
+}
+
+function renderCharts(stats) {
+  Object.values(appState.charts).forEach(c => { try { c.dispose(); } catch(e) {} });
+  appState.charts = {};
+
+  const C  = CHART_COLORS;
+  const cc = getCC();
+
+  const mkTooltip = (trigger = 'item') => ({
+    trigger,
+    backgroundColor: cc.ttBg,
+    borderColor: cc.ttBorder,
+    borderWidth: 1,
+    textStyle: { color: cc.ttText, fontSize: 12, fontFamily: 'Inter,sans-serif' },
+    extraCssText: 'border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.4)'
+  });
+
+  const axisLabel = { color: cc.text, fontSize: 9, fontFamily: 'Inter,sans-serif' };
+  const splitLine  = { lineStyle: { color: cc.split, type: 'dashed' } };
+  const axisLine   = { lineStyle: { color: cc.axis } };
+  const dzSlider = (bottom = 4) => ({
+    type: 'slider', start: 0, end: 100, height: 18, bottom,
+    textStyle: { color: cc.text, fontSize: 8 },
+    fillerColor: cc.dzFill,
+    borderColor: cc.dzBorder,
+    dataBackground: { lineStyle: { color: cc.accent + '44' }, areaStyle: { color: cc.accent + '0d' } },
+    selectedDataBackground: { lineStyle: { color: cc.accent }, areaStyle: { color: cc.accent + '22' } },
+    handleStyle: { color: cc.accent, borderColor: cc.accent },
+    moveHandleStyle: { color: cc.accent + '55' }
+  });
+
+  // ================================================================
+  // Chart 1: Event Type — Doughnut
+  // ================================================================
+  const eventLabels = Object.keys(stats.eventTypeDist).sort((a,b) => stats.eventTypeDist[b] - stats.eventTypeDist[a]);
+  const eventData   = eventLabels.map(k => stats.eventTypeDist[k]);
+
+  const c1 = echarts.init(document.getElementById('chartEventType'));
+  c1.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...mkTooltip('item'),
+      formatter: p => `<b style="color:${p.color}">${p.name}</b><br/>Occurrences : <b>${p.value}</b><br/>Part : <b>${p.percent.toFixed(1)}%</b>`
+    },
+    legend: {
+      orient: 'vertical', right: '2%', top: 'middle',
+      textStyle: { color: cc.legend, fontSize: 9 },
+      icon: 'roundRect', itemWidth: 10, itemHeight: 8, itemGap: 7,
+      formatter: name => { const i = eventLabels.indexOf(name); return `${name}  (${i >= 0 ? eventData[i] : ''})`; }
+    },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '68%'],
+      center: ['36%', '50%'],
+      data: eventLabels.map((name, i) => ({
+        name, value: eventData[i],
+        itemStyle: { color: C[i % C.length], borderColor: 'transparent', borderWidth: 2 }
+      })),
+      label: { show: false },
+      emphasis: {
+        scale: true, scaleSize: 7,
+        itemStyle: { shadowBlur: 18, shadowColor: 'rgba(56,189,248,0.35)' },
+        label: { show: true, formatter: '{b}\n{d}%', fontSize: 11, fontWeight: 'bold', color: '#fff' }
+      },
+      animationType: 'scale', animationEasing: 'elasticOut', animationDelay: 100
+    }]
+  });
+  appState.charts.eventType = c1;
+
+  // ================================================================
+  // Chart 2: Category — Nightingale Rose
+  // ================================================================
+  const catLabels = Object.keys(stats.categoryDist).sort((a,b) => stats.categoryDist[b] - stats.categoryDist[a]);
+  const catData   = catLabels.map(k => stats.categoryDist[k]);
+
+  const c2 = echarts.init(document.getElementById('chartCategory'));
+  c2.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...mkTooltip('item'),
+      formatter: p => `<b style="color:${p.color}">${p.name}</b><br/>Événements : <b>${p.value}</b><br/>Part : <b>${p.percent.toFixed(1)}%</b>`
+    },
+    legend: {
+      orient: 'vertical', right: '2%', top: 'middle',
+      textStyle: { color: cc.legend, fontSize: 9 },
+      icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 7
+    },
+    series: [{
+      type: 'pie',
+      radius: ['12%', '72%'],
+      center: ['38%', '50%'],
+      roseType: 'area',
+      data: catLabels.map((name, i) => ({
+        name, value: catData[i],
+        itemStyle: { color: C[i % C.length], borderColor: 'transparent', borderWidth: 1 }
+      })),
+      label: { show: false },
+      emphasis: {
+        scale: true, scaleSize: 5,
+        itemStyle: { shadowBlur: 14, shadowColor: 'rgba(56,189,248,0.3)' },
+        label: { show: true, formatter: '{b}\n{d}%', fontSize: 11, fontWeight: 'bold', color: '#fff' }
+      },
+      animationType: 'scale', animationEasing: 'elasticOut', animationDelay: 100
+    }]
+  });
+  appState.charts.category = c2;
+
+  // ================================================================
+  // Chart 3: Status — Donut with center KPI
+  // ================================================================
+  const statusLabels = Object.keys(stats.statusDist);
+  const statusData   = statusLabels.map(k => stats.statusDist[k]);
+  const statusColors = { OK: '#34d399', NOK: '#f87171', 'in-progress': '#fbbf24', unknown: '#505070' };
+  const statusTotal  = statusData.reduce((a,b) => a+b, 0);
+  const okPct        = statusTotal > 0 ? ((stats.okSessions / statusTotal) * 100).toFixed(1) : '0';
+
+  const c3 = echarts.init(document.getElementById('chartStatus'));
+  c3.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...mkTooltip('item'),
+      formatter: p => `<b style="color:${p.color}">${p.name}</b><br/>Sessions : <b>${p.value}</b><br/>Part : <b>${p.percent.toFixed(1)}%</b>`
+    },
+    legend: {
+      bottom: '4%',
+      textStyle: { color: cc.legend, fontSize: 11 },
+      icon: 'circle', itemWidth: 10, itemHeight: 10,
+      formatter: name => { const i = statusLabels.indexOf(name); return `${name}  (${i >= 0 ? statusData[i] : ''})`; }
+    },
+    graphic: [
+      { type: 'text', left: 'center', top: '35%', style: { text: `${okPct}%`, textAlign: 'center', fill: '#00e676', fontSize: 24, fontWeight: 'bold' } },
+      { type: 'text', left: 'center', top: '52%', style: { text: 'Succès', textAlign: 'center', fill: cc.nameTxt, fontSize: 11 } }
+    ],
+    series: [{
+      type: 'pie',
+      radius: ['44%', '66%'],
+      center: ['50%', '44%'],
+      data: statusLabels.map(name => ({
+        name, value: stats.statusDist[name],
+        itemStyle: { color: statusColors[name] || '#505070', borderWidth: 0 }
+      })),
+      label: { show: false },
+      emphasis: {
+        scale: true, scaleSize: 6,
+        itemStyle: { shadowBlur: 18 },
+        label: { show: true, formatter: '{b}\n{d}%', fontSize: 12, fontWeight: 'bold', color: '#fff' }
+      },
+      animationType: 'scale', animationEasing: 'elasticOut', animationDelay: 100
+    }]
+  });
+  appState.charts.status = c3;
+
+  // ================================================================
+  // Chart 4: Duration Distribution — Gradient Bar + dataZoom
+  // ================================================================
+  const sessionsWithDur = stats.sessionsWithDuration || [];
+  const durations = sessionsWithDur.map(s => s.duration).filter(d => d != null && d > 0).sort((a,b) => a-b);
+
+  let durLabels = [], durData = [];
+  if (durations.length > 0) {
+    const dMax = durations[durations.length - 1];
+    const bucketSec = dMax <= 60 ? 5 : dMax <= 300 ? 10 : dMax <= 1800 ? 30 : 60;
+    const hist = new Map();
+    durations.forEach(d => {
+      const bucket = Math.floor(d / bucketSec) * bucketSec;
+      const label = bucket >= 3600 ? `${(bucket/3600).toFixed(1)}h` : bucket >= 60 ? `${Math.round(bucket/60)}m` : `${bucket}s`;
+      hist.set(label, (hist.get(label)||0) + 1);
+    });
+    durLabels = [...hist.keys()].sort((a,b) => {
+      const toSec = s => s.endsWith('h') ? parseFloat(s)*3600 : s.endsWith('m') ? parseFloat(s)*60 : parseFloat(s);
+      return toSec(a) - toSec(b);
+    });
+    durData = durLabels.map(k => hist.get(k));
+  }
+
+  const c4 = echarts.init(document.getElementById('chartDuration'));
+  c4.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...mkTooltip('axis'),
+      formatter: p => p[0] ? `<b>${p[0].axisValue}</b><br/>Appels : <b>${p[0].value}</b>` : ''
+    },
+    grid: { left: 10, right: 10, bottom: durLabels.length > 10 ? 50 : 28, top: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: durLabels, axisLine, axisTick: { show: false },
+      axisLabel: { ...axisLabel, rotate: durLabels.length > 12 ? 35 : 0 }
+    },
+    yAxis: {
+      type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel, splitLine,
+      name: 'Sessions', nameTextStyle: { color: cc.nameTxt, fontSize: 9 }
+    },
+    dataZoom: durLabels.length > 14 ? [{ type: 'inside' }, dzSlider(3)] : [],
+    series: [{
+      type: 'bar', data: durData, barMaxWidth: 42,
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(0,255,204,0.9)' },
+          { offset: 1, color: 'rgba(0,212,255,0.18)' }
+        ]),
+        borderRadius: [4, 4, 0, 0]
+      },
+      emphasis: {
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#00ffcc' },
+            { offset: 1, color: 'rgba(0,212,255,0.4)' }
+          ])
+        }
+      }
+    }]
+  });
+  appState.charts.duration = c4;
+
+  // ================================================================
+  // Chart 5: Timeline — Area + dataZoom slider
+  // ================================================================
+  const tlTimestamps = Object.keys(stats.hourlyBins).map(Number).sort((a,b) => a-b);
+  const tlData       = tlTimestamps.map(k => stats.hourlyBins[k]);
+  const tlFormatted  = tlTimestamps.map(ts => {
+    const d = new Date(ts);
+    return d.toLocaleString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit' });
+  });
+
+  const c5 = echarts.init(document.getElementById('chartTimeline'));
+  c5.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...mkTooltip('axis'),
+      axisPointer: { type: 'cross', crossStyle: { color: 'rgba(0,212,255,0.28)' }, lineStyle: { type: 'dashed' } },
+      formatter: p => p[0] ? `<b>${p[0].axisValue}</b><br/>Événements : <b>${p[0].value}</b>` : ''
+    },
+    grid: { left: 10, right: 10, bottom: 52, top: 8, containLabel: true },
+    dataZoom: [{ type: 'inside' }, dzSlider(4)],
+    xAxis: {
+      type: 'category', data: tlFormatted, axisLine, axisTick: { show: false }, boundaryGap: false,
+      axisLabel: { ...axisLabel, rotate: 30, fontSize: 8 }
+    },
+    yAxis: {
+      type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel, splitLine,
+      name: 'Événements', nameTextStyle: { color: cc.nameTxt, fontSize: 9 }
+    },
+    series: [{
+      type: 'line', data: tlData, smooth: 0.4,
+      symbol: 'circle', symbolSize: tlData.length <= 60 ? 4 : 0,
+      showSymbol: tlData.length <= 60,
+      lineStyle: { color: '#00d4ff', width: 2 },
+      itemStyle: { color: '#00d4ff', borderColor: '#0a0a1a', borderWidth: 1.5 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(0,212,255,0.28)' },
+          { offset: 0.65, color: 'rgba(0,212,255,0.06)' },
+          { offset: 1, color: 'rgba(0,212,255,0.0)' }
+        ])
+      },
+      emphasis: { focus: 'series', itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,212,255,0.5)' } }
+    }]
+  });
+  appState.charts.timeline = c5;
+
+  if (!appState._resizeHandler) {
+    appState._resizeHandler = () => Object.values(appState.charts).forEach(c => { try { c.resize(); } catch(e) {} });
+    window.addEventListener('resize', appState._resizeHandler);
+  }
+}
+
+function getNestedValue(obj, path) {
+  return path.split('.').reduce((o,k)=>o?.[k], obj);
+}
+
+function sortEvents(events) {
+  const { eventsSortColumn: sortColumn, eventsSortDirection: sortDirection } = appState;
+  if (!sortColumn) return events;
+
+  return [...events].sort((a,b) => {
+    let va = getNestedValue(a, sortColumn);
+    let vb = getNestedValue(b, sortColumn);
+
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+
+    // Numeric comparison
+    if (typeof va === 'number' && typeof vb === 'number') {
+      return sortDirection === 'asc' ? va - vb : vb - va;
+    }
+    // Date comparison
+    if (va instanceof Date && vb instanceof Date) {
+      return sortDirection === 'asc' ? va - vb : vb - va;
+    }
+
+    va = String(va).toLowerCase();
+    vb = String(vb).toLowerCase();
+    if (va < vb) return sortDirection === 'asc' ? -1 : 1;
+    if (va > vb) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderEventsTable() {
+  const filterText = (document.getElementById('filterEvents')?.value || '').toLowerCase();
+  const filterCat = document.getElementById('filterCategory')?.value || 'all';
+
+  let events = [...appState.events];
+
+  if (filterText) {
+    events = events.filter(e =>
+      e.eventId.includes(filterText) ||
+      e.eventName.toLowerCase().includes(filterText) ||
+      (e.g1_msisdn||'').toLowerCase().includes(filterText) ||
+      (e.g2_org_id||'').toLowerCase().includes(filterText) ||
+      (e.session_id||'').toLowerCase().includes(filterText) ||
+      (e.params.status||'').toLowerCase().includes(filterText) ||
+      e.category.toLowerCase().includes(filterText)
+    );
+  }
+
+  if (filterCat !== 'all') {
+    events = events.filter(e => e.category === filterCat);
+  }
+
+  events = sortEvents(events);
+
+  const tbody = document.getElementById('eventsBody');
+  if (!tbody) return;
+
+  const pageData = getPageItems(events, 'eventsPage');
+  tbody.innerHTML = pageData.items.map(e => `
+    <tr class="clickable" data-event-id="${e.eventId}" data-session-id="${escapeHtml(e.session_id)}" title="Cliquer pour voir la session">
+      <td>${formatDate(e.date)}</td>
+      <td><code style="color:var(--accent);font-size:0.8rem">${e.eventId}</code></td>
+      <td>${e.icon} ${e.eventName}</td>
+      <td><span class="badge badge-info">${e.category}</span></td>
+      <td>${escapeHtml(e.g1_msisdn)}</td>
+      <td><code style="font-size:0.72rem;color:var(--text-3)">${escapeHtml(e.g2_org_id||'-')}</code></td>
+      <td><code style="font-size:0.72rem;color:var(--text-muted)">${escapeHtml((e.session_id||'').substring(0,12))}${(e.session_id||'').length>12?'…':''}</code></td>
+      <td>${e.params.status ? `<span class="badge ${e.params.status==='OK'?'badge-ok':'badge-nok'}">${escapeHtml(e.params.status)}</span>` : '-'}</td>
+      <td>${e.params.duration ? formatDuration(parseNum(e.params.duration)) : '-'}</td>
+      <td><button class="btn btn-sm js-raw-event" data-event-uid="${e.uid}" title="Voir les champs bruts avec headers">Brut</button></td>
+    </tr>
+  `).join('');
+
+  renderTablePager('eventsInfo', events.length, pageData, 'événement', 'eventsPage', renderEventsTable);
+
+  // Click handler to navigate to session
+  tbody.querySelectorAll('tr.clickable').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const sid = tr.dataset.sessionId;
+      if (sid && appState.sessions.find(s => s.sessionId === sid)) {
+        const sessionIndex = getFilteredSessions().findIndex(s => s.sessionId === sid);
+        if (sessionIndex >= 0) {
+          appState.sessionsPage = Math.floor(sessionIndex / TABLE_PAGE_SIZE) + 1;
+          renderSessionsTable();
+        }
+        switchTab('sessions');
+        // Scroll to the session row in table
+        setTimeout(() => {
+          const row = [...document.querySelectorAll('#sessionsBody tr.sess-row')]
+            .find(sessionRow => sessionRow.dataset.sessionId === sid);
+          if (row) row.scrollIntoView({ behavior:'smooth', block:'center' });
+        }, 200);
+      }
+    });
+  });
+  tbody.querySelectorAll('.js-raw-event').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      showRawEventDetail(Number(btn.dataset.eventUid));
+    });
+  });
+}
+
+function buildExpandHTML(session) {
+  const MAX_ROWS = 200;
+  const allEvents = [...session.events].sort((a,b) => (a.date||0) - (b.date||0));
+  const events    = allEvents.slice(0, MAX_ROWS);
+  const truncated = allEvents.length > MAX_ROWS;
+
+  const rows = events.map(e => {
+    const kp = [];
+    if (e.params.caller)          kp.push(`caller: ${e.params.caller}`);
+    if (e.params.callee)          kp.push(`callee: ${e.params.callee}`);
+    if (e.params.participant)     kp.push(`participant: ${e.params.participant}`);
+    if (e.params.sms_from)        kp.push(`from: ${e.params.sms_from}`);
+    if (e.params.sms_to)          kp.push(`to: ${e.params.sms_to}`);
+    if (e.params.reason)          kp.push(`reason: ${e.params.reason}`);
+    if (e.params.media_type)      kp.push(`media: ${e.params.media_type}`);
+    if (e.params.termination_side)kp.push(`term: ${e.params.termination_side}`);
+    if (e.params.is_emergency_call && e.params.is_emergency_call !== '')
+                                  kp.push(`emerg: ${e.params.is_emergency_call}`);
+    if (e.params.kpi1_avg && e.params.kpi1_avg !== '') kp.push(`KPI1: ${e.params.kpi1_avg}ms`);
+    if (e.params.rtt_avg  && e.params.rtt_avg  !== '') kp.push(`RTT: ${e.params.rtt_avg}ms`);
+    if (e.params.packet_loss_avg && e.params.packet_loss_avg !== '') kp.push(`PLoss: ${e.params.packet_loss_avg}%`);
+    if (e.params.int_jitter_avg  && e.params.int_jitter_avg  !== '') kp.push(`Jitter: ${e.params.int_jitter_avg}ms`);
+
+    const statusCell = e.params.status
+      ? `<span class="badge ${e.params.status === 'OK' ? 'badge-ok' : 'badge-nok'}">${escapeHtml(e.params.status)}</span>`
+      : `<span style="color:var(--text-3)">—</span>`;
+
+    const paramStr = kp.join(' · ');
+    return `<tr>
+      <td style="white-space:nowrap;font-family:var(--mono);font-size:.71rem;color:var(--text-3)">${formatDate(e.date)}</td>
+      <td><code style="color:var(--accent);font-size:.72rem">${escapeHtml(e.eventId)}</code></td>
+      <td>${e.icon} <strong style="font-weight:500">${escapeHtml(e.eventName)}</strong></td>
+      <td style="font-family:var(--mono);font-size:.78rem">${escapeHtml(e.g1_msisdn||'—')}</td>
+      <td><code style="font-size:0.72rem;color:var(--text-3)">${escapeHtml(e.g2_org_id||'—')}</code></td>
+      <td>${statusCell}</td>
+      <td>${e.params.duration ? formatDuration(parseNum(e.params.duration)) : '<span style="color:var(--text-3)">—</span>'}</td>
+      <td class="expand-params" title="${escapeHtml(paramStr)}">${escapeHtml(paramStr||'—')}</td>
+      <td><button class="btn btn-sm js-raw-event" data-event-uid="${e.uid}">Brut</button></td>
+    </tr>`;
+  }).join('');
+
+  const countLabel = truncated
+    ? `${MAX_ROWS} / ${allEvents.length} enregistrements affichés`
+    : `${events.length} enregistrement${events.length > 1 ? 's' : ''} CDR/EDR`;
+  return `<div class="expand-inner">
+    <div class="expand-header">
+      <span class="expand-title">${countLabel}${session.cdrCount ? ` · ${session.cdrCount} CDR` : ''}</span>
+      <button class="btn btn-sm js-session-detail" data-session-id="${escapeHtml(session.sessionId)}">📋 Détail complet</button>
+    </div>
+    ${truncated ? `<div style="font-size:.73rem;color:var(--warn);margin-bottom:8px">⚠ Session volumineuse — seuls les ${MAX_ROWS} premiers événements sont affichés sur ${allEvents.length.toLocaleString()}</div>` : ''}
+    <div style="overflow-x:auto">
+      <table class="expand-table">
+        <thead><tr>
+          <th>Horodatage</th><th>ID Evt</th><th>Type</th>
+          <th>MSISDN</th><th>Org</th><th>Statut</th><th>Durée</th><th>Paramètres</th><th>Brut</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function toggleExpandSession(sessionId) {
+  const rows = document.querySelectorAll('#sessionsBody tr[data-session-id]');
+  const mainRow = [...rows].find(row => row.classList.contains('sess-row') && row.dataset.sessionId === sessionId);
+  const expandRow = [...rows].find(row => row.classList.contains('expand-row') && row.dataset.sessionId === sessionId);
+  if (!mainRow || !expandRow) return;
+  const open = mainRow.classList.toggle('sess-expanded');
+  expandRow.style.display = open ? '' : 'none';
+  // Lazy-build content on first open to avoid pre-rendering 379K-event sessions
+  if (open && !expandRow.dataset.loaded) {
+    const session = appState.sessions.find(s => s.sessionId === sessionId);
+    if (session) {
+      expandRow.querySelector('td').innerHTML = buildExpandHTML(session);
+      const detailButton = expandRow.querySelector('.js-session-detail');
+      if (detailButton) {
+        detailButton.addEventListener('click', event => {
+          event.stopPropagation();
+          showSessionDetail(detailButton.dataset.sessionId);
+        });
+      }
+      expandRow.querySelectorAll('.js-raw-event').forEach(btn => {
+        btn.addEventListener('click', event => {
+          event.stopPropagation();
+          showRawEventDetail(Number(btn.dataset.eventUid));
+        });
+      });
+    }
+    expandRow.dataset.loaded = '1';
+  }
+}
+
+function sortSessions(sessions) {
+  const { sessionsSortColumn: sortColumn, sessionsSortDirection: sortDirection } = appState;
+  if (!sortColumn) return sessions;
+
+  return [...sessions].sort((a,b) => {
+    let va = getNestedValue(a, sortColumn);
+    let vb = getNestedValue(b, sortColumn);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number') return sortDirection === 'asc' ? va - vb : vb - va;
+    if (va instanceof Date && vb instanceof Date) return sortDirection === 'asc' ? va - vb : vb - va;
+    va = String(va).toLowerCase();
+    vb = String(vb).toLowerCase();
+    return sortDirection === 'asc' ? (va < vb ? -1 : va > vb ? 1 : 0) : (vb < va ? -1 : vb > va ? 1 : 0);
+  });
+}
+
+function getFilteredSessions() {
+  const filterText = (document.getElementById('filterSessions')?.value || '').toLowerCase();
+  const filterStatus = document.getElementById('filterSessionStatus')?.value || 'all';
+
+  let sessions = [...appState.sessions];
+
+  if (filterText) {
+    sessions = sessions.filter(s =>
+      (s.sessionId||'').toLowerCase().includes(filterText) ||
+      (s.caller||'').toLowerCase().includes(filterText) ||
+      (s.callee||'').toLowerCase().includes(filterText) ||
+      (s.msisdn||'').toLowerCase().includes(filterText) ||
+      (s.org||(s.events?.[0]?.g2_org_id)||'').toLowerCase().includes(filterText) ||
+      (s.dominantCategory||'').toLowerCase().includes(filterText) ||
+      (s.media_type||'').toLowerCase().includes(filterText)
+    );
+  }
+
+  if (filterStatus !== 'all') {
+    sessions = sessions.filter(s => s.status === filterStatus);
+  }
+
+  return sortSessions(sessions);
+}
+
+function renderSessionsTable() {
+  const sessions = getFilteredSessions();
+
+  const tbody = document.getElementById('sessionsBody');
+  if (!tbody) return;
+
+  if (sessions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-3)">🔍 Aucune session trouvée</td></tr>';
+    document.getElementById('sessionsInfo').textContent = '0 session';
+    return;
+  }
+
+  const pageData = getPageItems(sessions, 'sessionsPage');
+  tbody.innerHTML = pageData.items.map(s => {
+    const statusClass = s.status === 'OK' ? 'badge-ok' : s.status === 'NOK' ? 'badge-nok' : 'badge-warn';
+    const emergencyBadge = (s.is_emergency === 'YES' || s.is_emergency === 'OUI') ? ' 🚨' : '';
+    const sid = escapeHtml(s.sessionId);
+    const evtColor = s.eventCount >= 10 ? 'var(--warn)' : s.eventCount >= 3 ? 'var(--accent)' : 'var(--text-2)';
+    return `<tr class="clickable sess-row" data-session-id="${sid}" title="Cliquer pour déplier les enregistrements">
+      <td style="padding:9px 6px 9px 14px"><span class="expand-chevron">▶</span><span class="event-count-pill" title="${s.eventCount} événement(s)">${s.eventCount}</span></td>
+      <td>${s.startTime ? s.startTime.toLocaleString('fr-FR') : '-'}</td>
+      <td><code style="color:var(--accent);font-size:.75rem" title="${sid}">${escapeHtml((s.sessionId||'').substring(0,20))}${(s.sessionId||'').length>20?'…':''}</code></td>
+      <td><span class="badge badge-info">${s.dominantCategory||'-'}</span></td>
+      <td><span class="badge ${statusClass}">${s.status}${emergencyBadge}</span></td>
+      <td>${escapeHtml(s.caller||s.msisdn||'-')}</td>
+      <td style="width:150px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(s.callee||'-')}">${escapeHtml(s.callee||'-')}</td>
+      <td><code style="font-size:0.72rem;color:var(--text-3)">${escapeHtml(s.org||(s.events?.[0]?.g2_org_id)||'-')}</code></td>
+      <td>${formatDuration(s.duration)}</td>
+      <td style="font-weight:700;color:${evtColor}">${s.eventCount}</td>
+      <td>${s.media_type||'-'}</td>
+      <td><button class="btn btn-sm js-raw-session" data-session-id="${sid}">Brut</button></td>
+    </tr>
+    <tr class="expand-row" data-session-id="${sid}" style="display:none">
+      <td colspan="12"></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr.sess-row').forEach(row => {
+    row.addEventListener('click', () => toggleExpandSession(row.dataset.sessionId));
+  });
+  tbody.querySelectorAll('.js-raw-session').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      showRawSessionDetail(btn.dataset.sessionId);
+    });
+  });
+
+  renderTablePager('sessionsInfo', sessions.length, pageData, 'session', 'sessionsPage', renderSessionsTable);
+}
+
+// ============ KPI & QUALITY TAB ============
+
+function renderKpiTab() {
+  const sessions = appState.sessions.filter(s => s.kpi1_avg != null || s.rtt_avg != null);
+  const totalSessions = sessions.length;
+
+  // ---- KPI Summary Cards ----
+  const kpiCards = document.getElementById('kpiCards');
+  if (!kpiCards) return;
+
+  const aggKpi = (field) => {
+    const vals = sessions.map(s => s[field]).filter(v => v != null);
+    if (!vals.length) return { avg: 0, min: 0, max: 0, count: 0, beyond: 0 };
+    const sum = vals.reduce((a,b) => a + b, 0);
+    return { avg: sum / vals.length, min: Math.min(...vals), max: Math.max(...vals), count: vals.length,
+      beyond: sessions.filter(s => s[field.replace('_avg','_beyond')] > 0).length };
+  };
+
+  const kpi1 = aggKpi('kpi1_avg'); const kpi2 = aggKpi('kpi2_avg');
+  const kpi3 = aggKpi('kpi3_avg'); const kpi4 = aggKpi('kpi4_avg');
+  const rtt  = aggKpi('rtt_avg'); const jitter = aggKpi('int_jitter_avg'); const ploss = aggKpi('packet_loss_avg');
+
+  const mkKpiCard = (label, kpi, unit, color, base) => `
+    <div class="stat-card" style="border-left:3px solid ${color}">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value ${metricToneClass(base, kpi.avg)}" style="font-size:1.1rem">moy. ${(kpi.avg).toFixed(1)}${unit}</div>
+      <div class="stat-sub" style="display:flex;gap:12px;margin-top:4px">
+        <span>min ${(kpi.min).toFixed(1)}</span><span>max ${(kpi.max).toFixed(1)}</span>
+        ${kpi.beyond > 0 ? `<span style="color:var(--danger)">⚠ ${kpi.beyond} hors seuil</span>` : ''}
+      </div>
+    </div>`;
+
+  const mkQosCard = (label, qos, unit, color, base) => `
+    <div class="stat-card" style="border-left:3px solid ${color}">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value ${metricToneClass(base, qos.avg)}" style="font-size:1rem">moy. ${(qos.avg).toFixed(2)}${unit}</div>
+      <div class="stat-sub">min ${(qos.min).toFixed(2)} / max ${(qos.max).toFixed(2)} | ${qos.count} sessions</div>
+    </div>`;
+
+  kpiCards.innerHTML = `
+    ${mkKpiCard('KPI1 - MCPTT Access', kpi1, ' ms', '#00d4ff', 'kpi1')}
+    ${mkKpiCard('KPI2 - End-to-End', kpi2, ' ms', '#00ffcc', 'kpi2')}
+    ${mkKpiCard('KPI3 - Mouth-to-Ear', kpi3, ' ms', '#ffab00', 'kpi3')}
+    ${mkKpiCard('KPI4 - Late Call Entry', kpi4, ' ms', '#ff6b9d', 'kpi4')}
+    <div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap">
+      ${mkQosCard('📡 RTT', rtt, ' ms', '#7c5cfc', 'rtt')}
+      ${mkQosCard('📶 Jitter', jitter, ' ms', '#40c4ff', 'int_jitter')}
+      ${mkQosCard('📉 Packet Loss', ploss, ' %', '#ff5252', 'packet_loss')}
+    </div>`;
+
+  // ---- Charts ----
+  ['chartKpiAvg','chartKpi1Dist','chartKpi3Dist','chartQos'].forEach(id => {
+    if (appState.charts[id]) { try { appState.charts[id].dispose(); } catch(e) {} delete appState.charts[id]; }
+  });
+
+  const kcc = getCC();
+  const mkTT = (trigger = 'axis') => ({
+    trigger,
+    backgroundColor: kcc.ttBg,
+    borderColor: kcc.ttBorder,
+    borderWidth: 1,
+    textStyle: { color: kcc.ttText, fontSize: 12 },
+    extraCssText: 'border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.4)'
+  });
+  const al  = { color: kcc.text, fontSize: 9 };
+  const sl  = { lineStyle: { color: kcc.split, type: 'dashed' } };
+  const ax  = { lineStyle: { color: kcc.axis } };
+  const dzS = (bottom = 4) => ({
+    type: 'slider', start: 0, end: 100, height: 18, bottom,
+    textStyle: { color: kcc.text, fontSize: 8 },
+    fillerColor: kcc.dzFill, borderColor: kcc.dzBorder,
+    dataBackground: { lineStyle: { color: kcc.accent + '44' }, areaStyle: { color: kcc.accent + '0d' } },
+    selectedDataBackground: { lineStyle: { color: kcc.accent }, areaStyle: { color: kcc.accent + '22' } },
+    handleStyle: { color: kcc.accent, borderColor: kcc.accent },
+    moveHandleStyle: { color: kcc.accent + '55' }
+  });
+
+  // ---- KPI Averages grouped bar ----
+  const domAvg = document.getElementById('chartKpiAvg');
+  if (domAvg && totalSessions > 0) {
+    const kpiColors = ['#00d4ff','#00ffcc','#ffab00','#ff6b9d'];
+    const kpiNames  = ['KPI1 — MCPTT Access','KPI2 — End-to-End','KPI3 — Mouth-to-Ear','KPI4 — Late Entry'];
+    const kpiAvgs   = [kpi1.avg, kpi2.avg, kpi3.avg, kpi4.avg];
+    const kpiMins   = [kpi1.min, kpi2.min, kpi3.min, kpi4.min];
+    const kpiMaxs   = [kpi1.max, kpi2.max, kpi3.max, kpi4.max];
+
+    const ck = echarts.init(domAvg);
+    ck.setOption({
+      backgroundColor: 'transparent',
+      tooltip: {
+        ...mkTT('axis'),
+        formatter: p => {
+          let s = `<b>${p[0].axisValue}</b><br/>`;
+          p.forEach(item => { s += `${item.marker} ${item.seriesName} : <b>${Number(item.value).toFixed(1)} ms</b><br/>`; });
+          return s;
+        }
+      },
+      legend: { top: 2, textStyle: { color: kcc.legend, fontSize: 10 }, icon: 'roundRect', itemWidth: 10, itemHeight: 8, itemGap: 12 },
+      grid: { left: 10, right: 10, bottom: 8, top: 32, containLabel: true },
+      xAxis: {
+        type: 'category', data: kpiNames, axisLine: ax, axisTick: { show: false },
+        axisLabel: { color: kcc.text, fontSize: 10 }
+      },
+      yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: al, splitLine: sl, name: 'ms', nameTextStyle: { color: kcc.nameTxt, fontSize: 9 } },
+      series: [
+        {
+          name: 'Moyenne', type: 'bar', barMaxWidth: 32,
+          data: kpiAvgs.map((v, i) => ({
+            value: v,
+            itemStyle: { color: kpiColors[i] + 'cc', borderRadius: [5, 5, 0, 0] }
+          }))
+        },
+        {
+          name: 'Min', type: 'bar', barMaxWidth: 32,
+          data: kpiMins,
+          itemStyle: { color: 'rgba(255,255,255,0.11)', borderRadius: [3, 3, 0, 0] }
+        },
+        {
+          name: 'Max', type: 'bar', barMaxWidth: 32,
+          data: kpiMaxs,
+          itemStyle: { color: 'rgba(255,255,255,0.05)', borderRadius: [3, 3, 0, 0] }
+        }
+      ]
+    });
+    appState.charts.chartKpiAvg = ck;
+  }
+
+  // ---- Histogram helper ----
+  const makeHistogram = (domId, chartKey, values, label, color) => {
+    const dom = document.getElementById(domId);
+    if (!dom || !values.length) return;
+    const vmin = Math.min(...values), vmax = Math.max(...values);
+    const spread = vmax - vmin || 1;
+    const buckets = Math.min(20, Math.max(6, Math.ceil(spread / (spread > 100 ? 50 : spread > 10 ? 5 : 1))));
+    const step = spread / buckets || 1;
+    const hist = Array(buckets).fill(0);
+    values.forEach(v => { const idx = Math.min(Math.floor((v - vmin) / step), buckets - 1); hist[idx]++; });
+    const labels = hist.map((_, i) => {
+      const lo = vmin + i * step;
+      return lo >= 1000 ? `${(lo/1000).toFixed(1)}s` : `${lo.toFixed(0)}`;
+    });
+    const ch = echarts.init(dom);
+    ch.setOption({
+      backgroundColor: 'transparent',
+      tooltip: {
+        ...mkTT('axis'),
+        formatter: p => p[0] ? `<b>${label}</b><br/>${p[0].axisValue} ms → <b>${p[0].value} session(s)</b>` : ''
+      },
+      grid: { left: 10, right: 10, bottom: 28, top: 8, containLabel: true },
+      xAxis: {
+        type: 'category', data: labels, axisLine: ax, axisTick: { show: false },
+        axisLabel: { ...al, rotate: 30 },
+        name: 'ms', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: kcc.nameTxt, fontSize: 9 }
+      },
+      yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: al, splitLine: sl, name: 'Sessions', nameTextStyle: { color: kcc.nameTxt, fontSize: 9 } },
+      series: [{
+        type: 'bar', data: hist, barMaxWidth: 36,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: color },
+            { offset: 1, color: color + '28' }
+          ]),
+          borderRadius: [4, 4, 0, 0]
+        },
+        emphasis: { itemStyle: { opacity: 0.85 } }
+      }]
+    });
+    appState.charts[chartKey] = ch;
+  };
+
+  const kpi1Vals = sessions.map(s => s.kpi1_avg).filter(v => v != null);
+  const kpi3Vals = sessions.map(s => s.kpi3_avg).filter(v => v != null);
+  makeHistogram('chartKpi1Dist', 'chartKpi1Dist', kpi1Vals, 'KPI1 — MCPTT Access', '#00d4ff');
+  makeHistogram('chartKpi3Dist', 'chartKpi3Dist', kpi3Vals, 'KPI3 — Mouth-to-Ear', '#ffab00');
+
+  // ---- QoS multi-axis bar ----
+  const domQos = document.getElementById('chartQos');
+  if (domQos && totalSessions > 0) {
+    const qosSessions = [...sessions]
+      .filter(s => s.rtt_avg != null || s.int_jitter_avg != null || s.packet_loss_avg != null)
+      .sort((a,b) => (b.rtt_avg||0) - (a.rtt_avg||0));
+    const ds = qosSessions.slice(0, 30);
+    const cq = echarts.init(domQos);
+    cq.setOption({
+      backgroundColor: 'transparent',
+      tooltip: {
+        ...mkTT('axis'),
+        formatter: p => {
+          let s = `<b>Session</b><br/>`;
+          p.forEach(item => { s += `${item.marker} ${item.seriesName} : <b>${Number(item.value||0).toFixed(2)}</b><br/>`; });
+          return s;
+        }
+      },
+      legend: { top: 2, textStyle: { color: kcc.legend, fontSize: 10 }, icon: 'roundRect', itemWidth: 10, itemHeight: 8, itemGap: 12 },
+      grid: { left: 10, right: 46, bottom: ds.length > 8 ? 52 : 28, top: 32, containLabel: true },
+      dataZoom: ds.length > 8 ? [{ type: 'inside' }, dzS(4)] : [],
+      xAxis: {
+        type: 'category',
+        data: ds.map(s => (s.sessionId||'').substring(0, 10)),
+        axisLine: ax, axisTick: { show: false },
+        axisLabel: { ...al, rotate: 45, fontSize: 7 },
+        name: `Top ${ds.length} sessions (RTT desc${qosSessions.length > 30 ? ', '+qosSessions.length+' total' : ''})`,
+        nameLocation: 'middle', nameGap: 35, nameTextStyle: { color: kcc.nameTxt, fontSize: 9 }
+      },
+      yAxis: [
+        { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: al, splitLine: sl, name: 'ms', nameTextStyle: { color: kcc.nameTxt, fontSize: 9 } },
+        { type: 'value', position: 'right', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#ff5252', fontSize: 9 }, splitLine: { show: false }, name: '%', nameTextStyle: { color: '#ff5252', fontSize: 9 } }
+      ],
+      series: [
+        {
+          name: 'RTT (ms)', type: 'bar', barMaxWidth: 16,
+          data: ds.map(s => s.rtt_avg),
+          itemStyle: { color: '#7c5cfccc', borderRadius: [3, 3, 0, 0] }
+        },
+        {
+          name: 'Jitter (ms)', type: 'bar', barMaxWidth: 16,
+          data: ds.map(s => s.int_jitter_avg),
+          itemStyle: { color: '#40c4ffcc', borderRadius: [3, 3, 0, 0] }
+        },
+        {
+          name: 'Packet Loss (%)', type: 'bar', yAxisIndex: 1, barMaxWidth: 16,
+          data: ds.map(s => s.packet_loss_avg),
+          itemStyle: { color: '#ff5252cc', borderRadius: [3, 3, 0, 0] }
+        }
+      ]
+    });
+    appState.charts.chartQos = cq;
+  }
+
+  renderKpiTable();
+}
+
+function renderKpiTable() {
+  const sessions = appState.sessions.filter(s => s.kpi1_avg != null || s.rtt_avg != null);
+
+  // ---- Quality Table ----
+  const filterText = (document.getElementById('filterKpi')?.value || '').toLowerCase();
+  let filtered = [...sessions];
+  if (filterText) {
+    filtered = filtered.filter(s => (s.sessionId||'').toLowerCase().includes(filterText) ||
+      (s.eventType||'').toLowerCase().includes(filterText) ||
+      (formatDate(s.startTime)||'').toLowerCase().includes(filterText) ||
+      (s.dominantCategory||'').toLowerCase().includes(filterText));
+  }
+
+  // Sort using appState.kpiSortColumn / kpiSortDirection
+  const sortCol = appState.kpiSortColumn;
+  const sortDir = appState.kpiSortDirection;
+  if (sortCol) {
+    filtered.sort((a, b) => {
+      let va = a[sortCol], vb = b[sortCol];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  const tbody = document.getElementById('kpiBody');
+  if (!tbody) return;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--text-muted)">Aucune session avec données KPI/QoS</td></tr>';
+    document.getElementById('kpiInfo').textContent = '0 session';
+    return;
+  }
+
+  const fmtVal = (v, unit) => v != null ? `${Number(v).toFixed(1)}${unit}` : '-';
+  const fmtShortDate = (d) => d ? d.toLocaleString('fr-FR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '-';
+  const fmtMetric = (s, base, unit, includeCompute = false) => {
+    const avg = s[`${base}_avg`];
+    const min = s[`${base}_min`];
+    const max = s[`${base}_max`];
+    const computed = s[`${base}_computed`];
+    const beyond = s[`${base}_beyond`];
+    const extra = includeCompute && (computed != null || beyond != null)
+      ? `<span class="metric-extra ${beyond > 0 ? 'metric-tone-bad' : ''}">comp ${fmtVal(computed, '')} · beyond ${fmtVal(beyond, '')}</span>`
+      : '';
+    return `<div class="metric-cell">
+      <span class="metric-main ${metricToneClass(base, avg)}">${fmtVal(avg, unit)}</span>
+      <span class="metric-sub">min ${fmtVal(min, unit)} · max ${fmtVal(max, unit)}</span>
+      ${extra}
+    </div>`;
+  };
+
+  const pageData = getPageItems(filtered, 'kpiPage');
+  tbody.innerHTML = pageData.items.map(s => `
+    <tr class="clickable" data-session-id="${escapeHtml(s.sessionId)}">
+      <td title="${escapeAttr(s.sessionId||'')}"><code style="color:var(--accent);font-size:0.72rem">${escapeHtml((s.sessionId||'').substring(0,12))}${(s.sessionId||'').length>12?'…':''}</code></td>
+      <td title="${s.startTime ? escapeAttr(formatDate(s.startTime)) : '-'}"><code style="font-size:0.72rem;color:var(--text-2)">${fmtShortDate(s.startTime)}</code></td>
+      <td title="${escapeAttr(s.eventType||'-')}"><span class="badge badge-info">${escapeHtml(s.eventType||'-')}</span></td>
+      <td title="${escapeAttr(s.dominantCategory||'-')}"><span class="badge badge-info">${escapeHtml(s.dominantCategory||'-')}</span></td>
+      <td><span class="badge badge-info">${s.eventCount||0}</span></td>
+      <td title="${escapeAttr(s.org||(s.events?.[0]?.g2_org_id)||'-')}"><code style="font-size:0.72rem;color:var(--text-3)">${escapeHtml(s.org||(s.events?.[0]?.g2_org_id)||'-')}</code></td>
+      <td style="${metricToneStyle('kpi1', s.kpi1_avg)}">${fmtMetric(s, 'kpi1', 'ms', true)}</td>
+      <td style="${metricToneStyle('kpi2', s.kpi2_avg)}">${fmtMetric(s, 'kpi2', 'ms', true)}</td>
+      <td style="${metricToneStyle('kpi3', s.kpi3_avg)}">${fmtMetric(s, 'kpi3', 'ms', true)}</td>
+      <td style="${metricToneStyle('kpi4', s.kpi4_avg)}">${fmtMetric(s, 'kpi4', 'ms', true)}</td>
+      <td style="${metricToneStyle('rtt', s.rtt_avg)}">${fmtMetric(s, 'rtt', 'ms')}</td>
+      <td style="${metricToneStyle('int_jitter', s.int_jitter_avg)}">${fmtMetric(s, 'int_jitter', 'ms')}</td>
+      <td style="${metricToneStyle('packet_loss', s.packet_loss_avg)}">${fmtMetric(s, 'packet_loss', '%')}</td>
+      <td><button class="btn btn-sm js-raw-session" data-session-id="${escapeHtml(s.sessionId)}">Brut</button></td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('tr.clickable').forEach(row => {
+    row.addEventListener('click', () => showSessionDetail(row.dataset.sessionId));
+  });
+  tbody.querySelectorAll('.js-raw-session').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      showRawSessionDetail(btn.dataset.sessionId);
+    });
+  });
+
+  renderTablePager('kpiInfo', filtered.length, pageData, 'session', 'kpiPage', renderKpiTable);
+
+  // KPI table sort indicator
+  document.querySelectorAll('#kpiTable thead th').forEach(th => {
+    th.style.cursor = 'pointer';
+    const col = th.dataset.sort;
+    th.dataset.label ||= th.textContent.replace(/[ ▲▼]+$/g, '');
+    th.textContent = th.dataset.label;
+    if (col && appState.kpiSortColumn === col) {
+      th.textContent = th.dataset.label + (appState.kpiSortDirection === 'asc' ? ' ▲' : ' ▼');
+    }
+  });
+}
+
+// ============ SESSION DETAIL MODAL ============
+
+function showSessionDetail(sessionId) {
+  const session = appState.sessions.find(s => s.sessionId === sessionId);
+  if (!session) return;
+
+  const sortedEvents = [...session.events].sort((a,b) => (a.date||0) - (b.date||0));
+
+  const cdrEvt = session.events.find(e => e.params && e.params.status);
+
+  const modalHtml = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal modal-raw">
+        <div class="modal-header">
+          <div>
+            <h3>📋 Détail de la session</h3>
+            <code style="font-size:0.78rem;color:var(--accent);word-break:break-all">${escapeHtml(session.sessionId)}</code>
+          </div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <!-- Session Summary -->
+          <div class="stats-bar modal-session-summary">
+            <div class="stat-card">
+              <div class="stat-label">Statut</div>
+              <div class="stat-value" style="font-size:1.4rem;color:${session.status==='OK'?'var(--success)':session.status==='NOK'?'var(--danger)':'var(--warn)'}">${session.status}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Durée</div>
+              <div class="stat-value" style="font-size:1.4rem">${formatDuration(session.duration)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Événements</div>
+              <div class="stat-value" style="font-size:1.4rem;color:var(--accent)">${session.eventCount}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Type</div>
+              <div class="stat-value" style="font-size:1.1rem">${session.media_type||session.dominantCategory||'-'}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Org</div>
+              <div class="stat-value" style="font-size:1.1rem">${escapeHtml(session.org||(session.events?.[0]?.g2_org_id)||'-')}</div>
+            </div>
+          </div>
+
+          <!-- Call Info — inline label:value per line, grouped -->
+          ${cdrEvt ? `
+          <div class="chart-card detail-card">
+            <div class="chart-title">Informations d'appel</div>
+            <div class="detail-grid detail-grid-call">
+              <div class="detail-item"><span class="detail-label">Appelant</span><span class="detail-value">${escapeHtml(cdrEvt.params.caller||'-')}</span></div>
+              <div class="detail-item"><span class="detail-label">Appelé</span><span class="detail-value">${escapeHtml(cdrEvt.params.callee||'-')}</span></div>
+              <div class="detail-item"><span class="detail-label">Org</span><span class="detail-value">${escapeHtml(session.org||cdrEvt.g2_org_id||(session.events?.[0]?.g2_org_id)||'-')}</span></div>
+              <div class="detail-item"><span class="detail-label">Début</span><span class="detail-value">${escapeHtml(cdrEvt.params.start_date||'-')}</span></div>
+              <div class="detail-item"><span class="detail-label">Fin</span><span class="detail-value">${escapeHtml(cdrEvt.params.end_date||'-')}</span></div>
+              <div class="detail-item"><span class="detail-label">Urgence</span><span class="detail-value">${cdrEvt.params.is_emergency_call==='YES'||cdrEvt.params.is_emergency_call==='OUI'?'OUI':'Non'}</span></div>
+              <div class="detail-item detail-item-wide"><span class="detail-label">Fin</span><span class="detail-value">${escapeHtml(cdrEvt.params.reason||'-')} · <span class="detail-label">Terminaison</span> ${escapeHtml(cdrEvt.params.termination_side||'-')}</span></div>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- KPI Metrics — 4 cols, short label: values inline -->
+          ${session.kpi1_avg != null ? `
+          <div class="chart-card detail-card">
+            <div class="chart-title">KPI — Métriques de performance</div>
+            <div class="detail-grid detail-grid-kpi">
+              <div class="detail-item"><span class="detail-label" style="color:var(--accent)">KPI1</span><span class="detail-value">${formatMetricInline('kpi1', session.kpi1_avg, session.kpi1_min, session.kpi1_max, 'ms')}</span></div>
+              <div class="detail-item"><span class="detail-label" style="color:var(--accent-2)">KPI2</span><span class="detail-value">${formatMetricInline('kpi2', session.kpi2_avg, session.kpi2_min, session.kpi2_max, 'ms')}</span></div>
+              <div class="detail-item"><span class="detail-label" style="color:#7c5cfc">KPI3</span><span class="detail-value">${formatMetricInline('kpi3', session.kpi3_avg, session.kpi3_min, session.kpi3_max, 'ms')}</span></div>
+              <div class="detail-item"><span class="detail-label" style="color:#ff6b9d">KPI4</span><span class="detail-value">${formatMetricInline('kpi4', session.kpi4_avg, session.kpi4_min, session.kpi4_max, 'ms')}</span></div>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- QoS Metrics — 3 cols, short label: values inline -->
+          ${session.packet_loss_avg != null ? `
+          <div class="chart-card detail-card">
+            <div class="chart-title">QoS — Qualité de Service</div>
+            <div class="detail-grid detail-grid-qos">
+              <div class="detail-item"><span class="detail-label">PLoss</span><span class="detail-value">${formatMetricInline('packet_loss', session.packet_loss_avg, session.packet_loss_min, session.packet_loss_max, '%')}</span></div>
+              <div class="detail-item"><span class="detail-label">Jitter</span><span class="detail-value">${formatMetricInline('int_jitter', session.int_jitter_avg, session.int_jitter_min, session.int_jitter_max, 'ms')}</span></div>
+              <div class="detail-item"><span class="detail-label">RTT</span><span class="detail-value">${formatMetricInline('rtt', session.rtt_avg, session.rtt_min, session.rtt_max, 'ms')}</span></div>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Timeline -->
+          <div class="chart-card">
+            <div class="chart-title">Timeline des événements</div>
+            <div class="timeline">
+              ${sortedEvents.map((e,i) => `
+                <div class="timeline-item">
+                  <div class="tl-time">${formatDate(e.date)}</div>
+                  <div class="tl-event">${e.icon} ${e.eventName} <code style="color:var(--text-muted);font-size:0.75rem">(${e.eventId})</code></div>
+                  <div class="tl-detail tl-detail-grid">
+                    <div class="detail-item"><span class="detail-label">MSISDN</span><span class="detail-value">${escapeHtml(e.g1_msisdn)}</span></div>
+                    <div class="detail-item"><span class="detail-label">Org</span><span class="detail-value">${escapeHtml(e.g2_org_id||'-')}</span></div>
+                    ${e.params.callee ? '<div class="detail-item"><span class="detail-label">Appelé</span><span class="detail-value">'+escapeHtml(e.params.callee)+'</span></div>' : ''}
+                    ${e.params.participant ? '<div class="detail-item"><span class="detail-label">Participant</span><span class="detail-value">'+escapeHtml(e.params.participant)+'</span></div>' : ''}
+                    ${e.params.media_type ? '<div class="detail-item"><span class="detail-label">Média</span><span class="detail-value">'+escapeHtml(e.params.media_type)+'</span></div>' : ''}
+                    ${e.params.status ? '<div class="detail-item"><span class="detail-label">Statut</span><span class="detail-value">'+escapeHtml(e.params.status)+'</span></div>' : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalContainer').innerHTML = modalHtml;
+}
+
+function showRawEventDetail(eventUid) {
+  const evt = appState.events.find(e => e.uid === eventUid);
+  if (!evt) return;
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal modal-raw">
+        <div class="modal-header">
+          <h3>Données brutes événement</h3>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">${buildRawEventHTML(evt)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function showRawSessionDetail(sessionId) {
+  const session = appState.sessions.find(s => s.sessionId === sessionId);
+  if (!session) return;
+  const MAX_RAW_EVENTS = 30;
+  const events = [...session.events].sort((a,b) => (a.date||0) - (b.date||0));
+  const shown = events.slice(0, MAX_RAW_EVENTS);
+  const body = shown.map((evt, index) => `
+    <div style="margin-bottom:22px">
+      <h4 style="margin:0 0 8px;font-size:.9rem">Ligne ${index + 1} · ${evt.icon} ${escapeHtml(evt.eventName)} <code style="color:var(--accent)">${escapeHtml(evt.eventId)}</code></h4>
+      ${buildRawEventHTML(evt, { hideTitle: true })}
+    </div>
+  `).join('');
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <h3>Données brutes session</h3>
+            <code style="font-size:.74rem;color:var(--accent);word-break:break-all">${escapeHtml(sessionId)}</code>
+          </div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          ${events.length > MAX_RAW_EVENTS ? `<div style="font-size:.78rem;color:var(--warn);margin-bottom:12px">Session volumineuse: ${MAX_RAW_EVENTS} / ${events.length} événements bruts affichés.</div>` : ''}
+          ${body}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function closeModal() {
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+// ============ FILE HANDLING ============
+
+// ============ PROGRESS UI ============
+
+function showProgress(step) {
+  document.getElementById('progressOverlay').style.display = 'flex';
+  document.getElementById('progressStep').innerHTML = '<span class="progress-spinner"></span> ' + step;
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressStats').textContent = '';
+}
+
+function updateProgress(step, pct, stats) {
+  document.getElementById('progressStep').textContent = step;
+  document.getElementById('progressFill').style.width = Math.min(100, Math.max(0, pct)) + '%';
+  document.getElementById('progressStats').textContent = stats || '';
+}
+
+function hideProgress() {
+  document.getElementById('progressOverlay').style.display = 'none';
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ============ FILE HANDLING ============
+
+async function processFile(file) {
+  try {
+    appState.fileName = file.name;
+    showProgress('Lecture du fichier...');
+    updateProgress('Lecture du fichier...', 5);
+
+    const arrayBuffer = await file.arrayBuffer();
+    let allText = '';
+
+    if (file.name.endsWith('.tgz') || file.name.endsWith('.tar.gz')) {
+      updateProgress('Décompression GZip...', 10);
+      await sleep(40);
+
+      let files;
+      try {
+        files = extractTgz(arrayBuffer);
+      } catch (e) {
+        hideProgress();
+        throw new Error('Échec décompression .tgz : ' + e.message);
+      }
+
+      updateProgress(files.length + ' fichier(s) extrait(s) de l\'archive', 20);
+
+      const textFiles = files.filter(f =>
+        f.name.toLowerCase().endsWith('.edr') || f.name.toLowerCase().endsWith('.cdr') ||
+        f.name.toLowerCase().endsWith('.txt') || f.name.toLowerCase().endsWith('.csv') ||
+        f.name.toLowerCase().endsWith('.log')
+      );
+
+      if (textFiles.length === 0) {
+        hideProgress();
+        throw new Error('Aucun fichier .edr, .cdr, ou .txt trouvé. Fichiers : ' + files.map(f=>f.name).join(', '));
+      }
+
+      updateProgress('Lecture de ' + textFiles.length + ' fichier(s) texte...', 25);
+      await sleep(40);
+
+      for (let i = 0; i < textFiles.length; i++) {
+        allText += readTextFromUint8Array(textFiles[i].data) + '\n';
+        updateProgress(
+          'Lecture : ' + textFiles[i].name,
+          25 + Math.round((i + 1) / textFiles.length * 10)
+        );
+      }
+    } else if (file.name.endsWith('.gz')) {
+      updateProgress('Décompression GZip...', 10);
+      await sleep(40);
+      const decompressed = pako.ungzip(new Uint8Array(arrayBuffer));
+      allText = new TextDecoder('utf-8').decode(decompressed);
+      updateProgress('Décompression terminée', 20);
+    } else {
+      allText = new TextDecoder('utf-8').decode(new Uint8Array(arrayBuffer));
+      updateProgress('Fichier lu', 15);
+    }
+
+    updateProgress('Parsing des événements CDR/EDR...', 35);
+    await sleep(40);
+
+    const { events, errors } = parseAll(allText, (current, total, parsed) => {
+      const pct = 35 + Math.round((current / total) * 45);
+      updateProgress(
+        'Parsing : ' + current.toLocaleString() + ' / ' + total.toLocaleString() + ' lignes',
+        pct,
+        parsed.toLocaleString() + ' événements trouvés'
+      );
+    });
+
+    if (events.length === 0) {
+      hideProgress();
+      throw new Error('Aucun événement CDR/EDR valide trouvé dans le fichier.');
+    }
+
+    updateProgress('Parsing terminé : ' + events.length.toLocaleString() + ' événements', 80, '');
+    await sleep(40);
+
+    updateProgress('Corrélation des sessions...', 85);
+    await sleep(40);
+    const sessions = correlateEvents(events);
+
+    updateProgress(sessions.length + ' sessions corrélées', 90);
+    await sleep(40);
+
+    updateProgress('Génération de l\'interface...', 95);
+    await sleep(40);
+
+    appState.events = events;
+    appState.sessions = sessions;
+    appState.eventsPage = 1;
+    appState.sessionsPage = 1;
+    appState.kpiPage = 1;
+
+    renderAll();
+
+    updateProgress('Terminé !', 100, events.length.toLocaleString() + ' événements, ' + sessions.length + ' sessions');
+    await sleep(400);
+
+    hideProgress();
+
+    toast('✅ ' + events.length.toLocaleString() + ' événements parsés, ' + sessions.length + ' sessions corrélées' + (errors.length > 0 ? ' (' + errors.length + ' lignes ignorées)' : ''));
+
+    if (errors.length > 0 && errors.length <= 10) {
+      console.warn('Parse errors:', errors);
+      toast('⚠️ ' + errors.length + ' ligne(s) non parsée(s)', true);
+    } else if (errors.length > 10) {
+      toast('⚠️ ' + errors.length + ' lignes non parsées (voir console)', true);
+      console.warn('Parse errors:', errors);
+    }
+
+  } catch (e) {
+    console.error('File processing error:', e);
+    hideProgress();
+    toast('❌ Erreur : ' + e.message, true);
+    showUploadOverlay(true);
+  }
+}
+
+// ============ DRAG & DROP ============
+
+function initDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  const overlay = document.getElementById('uploadOverlay');
+  const fileInput = document.getElementById('fileInput');
+
+  // Click to open file dialog
+  zone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      processFile(fileInput.files[0]);
+    }
+  });
+
+  // Drag events on the zone
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+  zone.addEventListener('dragleave', () => {
+    zone.classList.remove('drag-over');
+  });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  // Also handle drag on the overlay (for when it's shown)
+  overlay.addEventListener('dragover', (e) => e.preventDefault());
+  overlay.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  // Body-level drag to show overlay if hidden
+  document.body.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (appState.events.length === 0) {
+      showUploadOverlay(true);
+    }
+  });
+}
+
+// ============ EXPORT CSV ============
+
+function exportCSV() {
+  const events = appState.events;
+  if (events.length === 0) {
+    toast('Aucune donnée à exporter.', true);
+    return;
+  }
+
+  // Build CSV header
+  const headers = ['datetime','event_id','event_name','category','msisdn','org_id','session_id'];
+  const allParamKeys = new Set();
+  events.forEach(e => Object.keys(e.params).forEach(k => allParamKeys.add(k)));
+  const sortedParamKeys = [...allParamKeys].sort();
+  headers.push(...sortedParamKeys);
+
+  const rows = [headers.join(';')];
+
+  events.forEach(e => {
+    const row = [
+      e.datetime,
+      e.eventId,
+      `"${e.eventName}"`,
+      e.category,
+      e.g1_msisdn,
+      e.g2_org_id,
+      e.session_id
+    ];
+    sortedParamKeys.forEach(k => {
+      const val = e.params[k]||'';
+      row.push(val.includes(';') || val.includes('"') ? `"${val.replace(/"/g,'""')}"` : val);
+    });
+    rows.push(row.join(';'));
+  });
+
+  const csv = rows.join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cdr_export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('📥 Export CSV téléchargé');
+}
+
+// ============ THEME ============
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const goLight = html.dataset.theme !== 'light';
+  html.dataset.theme = goLight ? 'light' : 'dark';
+  localStorage.setItem('cdr-theme', html.dataset.theme);
+  syncThemeButtons();
+  if (appState.events.length > 0) {
+    const stats = computeStatistics(appState.events, appState.sessions);
+    renderCharts(stats);
+    renderKpiTab();
+  }
+}
+
+function syncThemeButtons() {
+  const icon = document.documentElement.dataset.theme === 'light' ? '🌙' : '☀️';
+  document.querySelectorAll('.btn-theme-icon').forEach(el => {
+    el.textContent = icon;
+  });
+}
+
+// ============ INIT ============
+
+function init() {
+  const savedTheme = localStorage.getItem('cdr-theme') || 'dark';
+  document.documentElement.dataset.theme = savedTheme;
+  syncThemeButtons();
+
+  document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+  document.getElementById('btnUploadTheme').addEventListener('click', event => {
+    event.stopPropagation();
+    toggleTheme();
+  });
+
+  initDragDrop();
+
+  document.getElementById('btnUpload').addEventListener('click', () => {
+    document.getElementById('fileInput').click();
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    appState.events = [];
+    appState.sessions = [];
+    appState.fileName = '';
+    appState.eventsSortColumn = 'date';
+    appState.eventsSortDirection = 'asc';
+    appState.eventsPage = 1;
+    appState.sessionsSortColumn = null;
+    appState.sessionsSortDirection = 'asc';
+    appState.sessionsPage = 1;
+    appState.kpiSortColumn = null;
+    appState.kpiSortDirection = 'asc';
+    appState.kpiPage = 1;
+    Object.values(appState.charts).forEach(c => { try { c.dispose(); } catch(e) {} });
+    appState.charts = {};
+    document.getElementById('modalContainer').innerHTML = '';
+    const contentEl = document.getElementById('dashboardContent');
+    if (contentEl) contentEl.innerHTML = '';
+    showUploadOverlay(true);
+    toast('🔄 Application réinitialisée');
+  });
+
+  document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+
+  // Keyboard shortcut for closing modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  });
+
+  // Initial state
+  showUploadOverlay(true);
+}
+
+// Start the app
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+labfoundry.eu {
+  encode gzip
+
+  redir /beacon-encode /beacon-encode/ 308
+  redir /beacon-scan /beacon-scan/ 308
+  redir /planner-demo /planner-demo/ 308
+  redir /cdr-scan /cdr-scan/ 308
+
+  handle_path /planner-demo/* {
+    reverse_proxy 127.0.0.1:8091
+  }
+
+  handle_path /beacon-encode/* {
+    reverse_proxy 127.0.0.1:8087
+  }
+
+  handle_path /beacon-scan/* {
+    reverse_proxy 127.0.0.1:8088
+  }
+
+  handle_path /cdr-scan/* {
+    reverse_proxy 127.0.0.1:8089
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:8787
+  }
+}
+
+http://server-ia-gx10 {
+  encode gzip
+
+  redir /beacon-encode /beacon-encode/ 308
+  redir /beacon-scan /beacon-scan/ 308
+  redir /planner-demo /planner-demo/ 308
+  redir /cdr-scan /cdr-scan/ 308
+
+  handle_path /planner-demo/* {
+    reverse_proxy 127.0.0.1:8091
+  }
+
+  handle_path /beacon-encode/* {
+    reverse_proxy 127.0.0.1:8087
+  }
+
+  handle_path /beacon-scan/* {
+    reverse_proxy 127.0.0.1:8088
+  }
+
+  handle_path /cdr-scan/* {
+    reverse_proxy 127.0.0.1:8089
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:8787
+  }
+}
+
+server-ia-gx10 {
+  tls internal
+  encode gzip
+
+  redir /planner-demo /planner-demo/ 308
+  redir /cdr-scan /cdr-scan/ 308
+
+  handle_path /planner-demo/* {
+    reverse_proxy 127.0.0.1:8091
+  }
+
+  handle_path /cdr-scan/* {
+    reverse_proxy 127.0.0.1:8089
+  }
+}
